@@ -189,3 +189,38 @@ export async function findVehicleByVin(company_id: string, vin: string) {
   return data
 }
 
+// Crea un vehículo mínimo a partir de un VIN detectado en una factura sin
+// coincidencia previa. Marca y modelo no aparecen casi nunca en la factura,
+// así que se guardan como "Pendiente" hasta que alguien los edite en la
+// ficha del vehículo. Requiere confirmación explícita del usuario (no se
+// llama nunca de forma automática sin que él pulse el botón).
+export async function createVehicleFromVin(company_id: string, vin: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data, error } = await supabase
+    .from('vehicles')
+    .insert({
+      company_id,
+      marca: 'Pendiente',
+      modelo: 'Pendiente',
+      vin: vin.toUpperCase().trim(),
+      created_by: user.id,
+    })
+    .select('id, marca, modelo, vin')
+    .single()
+
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error('Ya existe un vehículo con ese bastidor/VIN en esta empresa.')
+    }
+    throw new Error('No se ha podido crear el vehículo. Inténtalo de nuevo.')
+  }
+
+  revalidatePath('/dashboard/vehiculos')
+  return data
+}
+

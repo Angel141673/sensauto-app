@@ -6,6 +6,7 @@ import {
   createExpense,
   analyzeInvoiceWithAI,
   findVehicleByVin,
+  createVehicleFromVin,
   type ExpenseState,
   type AnalyzeState,
 } from './actions'
@@ -37,6 +38,10 @@ export default function ExpenseForm({
   const [analysis, setAnalysis] = useState<InvoiceAnalysis | null>(null)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
   const [vehiculoSugerido, setVehiculoSugerido] = useState<Vehicle | null>(null)
+  const [vinSinVehiculo, setVinSinVehiculo] = useState<string | null>(null)
+  const [creandoVehiculo, setCreandoVehiculo] = useState(false)
+  const [crearVehiculoError, setCrearVehiculoError] = useState<string | null>(null)
+  const [vehiculoCreado, setVehiculoCreado] = useState<Vehicle | null>(null)
 
   const [vehicleValue, setVehicleValue] = useState('')
   const [proveedorValue, setProveedorValue] = useState('')
@@ -57,6 +62,9 @@ export default function ExpenseForm({
     setAnalyzeError(null)
     setAnalysis(null)
     setVehiculoSugerido(null)
+    setVinSinVehiculo(null)
+    setCrearVehiculoError(null)
+    setVehiculoCreado(null)
 
     try {
       const formData = new FormData()
@@ -73,13 +81,35 @@ export default function ExpenseForm({
         setAnalysis(result.analysis)
         if (result.analysis.vin) {
           const vehicle = await findVehicleByVin(companyId, result.analysis.vin)
-          if (vehicle) setVehiculoSugerido(vehicle)
+          if (vehicle) {
+            setVehiculoSugerido(vehicle)
+          } else {
+            setVinSinVehiculo(result.analysis.vin)
+          }
         }
       }
     } catch {
       setAnalyzeError('No se ha podido analizar la factura. Inténtalo de nuevo.')
     } finally {
       setAnalyzing(false)
+    }
+  }
+
+  async function handleCrearVehiculo() {
+    if (!vinSinVehiculo) return
+    setCreandoVehiculo(true)
+    setCrearVehiculoError(null)
+
+    try {
+      const vehicle = await createVehicleFromVin(companyId, vinSinVehiculo)
+      setVehiculoCreado(vehicle)
+      setVinSinVehiculo(null)
+      setVehicleValue(vehicle.id)
+      router.refresh()
+    } catch (err: any) {
+      setCrearVehiculoError(err?.message ?? 'No se ha podido crear el vehículo. Inténtalo de nuevo.')
+    } finally {
+      setCreandoVehiculo(false)
     }
   }
 
@@ -171,6 +201,29 @@ export default function ExpenseForm({
             <button type="button" className="secondary-btn" onClick={() => setVehicleValue(vehiculoSugerido.id)}>
               Vincular a este vehículo
             </button>
+          </div>
+        )}
+
+        {vinSinVehiculo && (
+          <div className="ocr-suggestion" style={{ marginTop: 12 }}>
+            <p>
+              No hay ningún vehículo con el bastidor <strong>{vinSinVehiculo}</strong> en esta empresa.
+              ¿Quieres crearlo? Marca y modelo quedarán como "Pendiente" hasta que los edites en la
+              ficha del vehículo.
+            </p>
+            <button type="button" className="secondary-btn" onClick={handleCrearVehiculo} disabled={creandoVehiculo}>
+              {creandoVehiculo ? 'Creando…' : 'Crear vehículo con este VIN'}
+            </button>
+            {crearVehiculoError && <p className="login-error" style={{ marginTop: 8 }}>{crearVehiculoError}</p>}
+          </div>
+        )}
+
+        {vehiculoCreado && (
+          <div className="ocr-suggestion" style={{ marginTop: 12 }}>
+            <p>
+              Vehículo creado y vinculado a este gasto (bastidor {vehiculoCreado.vin}). Recuerda editar
+              la marca y el modelo reales desde su ficha.
+            </p>
           </div>
         )}
       </section>
