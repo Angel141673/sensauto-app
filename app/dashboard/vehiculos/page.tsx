@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 const ESTADO_LABEL: Record<string, string> = {
   entrada: 'Entrada',
@@ -31,7 +32,17 @@ export default async function VehiculosPage({
     .eq('user_id', user.id)
 
   const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
-  const activeCode = empresa ?? companies[0]?.code
+
+  if (!empresa) {
+    return (
+      <div className="vehicles-page">
+        <h1>Vehículos</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/vehiculos" showTodas />
+      </div>
+    )
+  }
+
+  const activeCode = empresa
   const activeCompany = companies.find((c: any) => c.code === activeCode)
   const isAll = activeCode === 'TODAS'
 

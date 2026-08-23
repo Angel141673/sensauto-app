@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import DocumentUploadForm from './UploadForm'
 import { deleteDocument } from './actions'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 const TIPO_LABEL: Record<string, string> = {
   vehiculo: 'Documentación del vehículo',
@@ -33,8 +34,16 @@ export default async function DocumentosPage({
 
   if (companies.length === 0) redirect('/dashboard')
 
-  const activeCode = empresa && empresa !== 'TODAS' ? empresa : companies[0]?.code
-  const activeCompany = companies.find((c: any) => c.code === activeCode) ?? companies[0]
+  const activeCompany = companies.find((c: any) => c.code === empresa)
+
+  if (!activeCompany) {
+    return (
+      <div className="vehicles-page">
+        <h1>Documentos</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/documentos" />
+      </div>
+    )
+  }
 
   const [{ data: vehicles }, { data: clients }] = await Promise.all([
     supabase

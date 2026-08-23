@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 function euro(n: number) {
   return n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
@@ -25,9 +26,29 @@ export default async function InformesPage({
   const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
   if (companies.length === 0) redirect('/dashboard')
 
-  const activeCode = empresa ?? companies[0]?.code
+  if (!empresa) {
+    return (
+      <div className="vehicles-page">
+        <h1>Inversión, márgenes y previsión</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/informes" showTodas />
+      </div>
+    )
+  }
+
+  const activeCode = empresa
   const isAll = activeCode === 'TODAS'
-  const companyIds = isAll ? companies.map((c: any) => c.id) : [companies.find((c: any) => c.code === activeCode)?.id ?? companies[0].id]
+  const activeCompany = companies.find((c: any) => c.code === activeCode)
+
+  if (!isAll && !activeCompany) {
+    return (
+      <div className="vehicles-page">
+        <h1>Inversión, márgenes y previsión</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/informes" showTodas />
+      </div>
+    )
+  }
+
+  const companyIds = isAll ? companies.map((c: any) => c.id) : [activeCompany.id]
 
   const { data: vehicles } = await supabase
     .from('vehicles')

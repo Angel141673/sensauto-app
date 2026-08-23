@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import ExpenseForm from './ExpenseForm'
 import { deleteExpense } from './actions'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 export default async function GastosPage({
   searchParams,
@@ -23,8 +24,16 @@ export default async function GastosPage({
   const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
   if (companies.length === 0) redirect('/dashboard')
 
-  const activeCode = empresa && empresa !== 'TODAS' ? empresa : companies[0]?.code
-  const activeCompany = companies.find((c: any) => c.code === activeCode) ?? companies[0]
+  const activeCompany = companies.find((c: any) => c.code === empresa)
+
+  if (!activeCompany) {
+    return (
+      <div className="vehicles-page">
+        <h1>Gastos / facturas</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/gastos" />
+      </div>
+    )
+  }
 
   const { data: vehicles } = await supabase
     .from('vehicles')

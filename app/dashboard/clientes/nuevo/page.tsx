@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import ClientForm from '@/components/ClientForm'
 import { createClientRecord } from '../actions'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 export default async function NuevoClientePage({
   searchParams,
@@ -25,7 +26,16 @@ export default async function NuevoClientePage({
 
   if (companies.length === 0) redirect('/dashboard')
 
-  const defaultCompany = companies.find((c: any) => c.code === empresa) ?? companies[0]
+  const defaultCompany = companies.find((c: any) => c.code === empresa)
+
+  if (!defaultCompany) {
+    return (
+      <div className="vehicles-page">
+        <h1>Nuevo cliente</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/clientes/nuevo" />
+      </div>
+    )
+  }
 
   return (
     <div className="vehicles-page">

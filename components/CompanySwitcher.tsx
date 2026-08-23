@@ -11,7 +11,7 @@ type Company = { id: string; code: string; name: string }
 export default function CompanySwitcher({ companies }: { companies: Company[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const active = searchParams.get('empresa') ?? companies[0]?.code ?? ''
+  const active = searchParams.get('empresa') ?? ''
 
   function handleChange(code: string) {
     const params = new URLSearchParams(searchParams.toString())

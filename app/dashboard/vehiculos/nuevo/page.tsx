@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import VehicleForm from '@/components/VehicleForm'
 import { createVehicle } from '../actions'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 export default async function NuevoVehiculoPage({
   searchParams,
@@ -27,7 +28,16 @@ export default async function NuevoVehiculoPage({
     redirect('/dashboard')
   }
 
-  const defaultCompany = companies.find((c: any) => c.code === empresa) ?? companies[0]
+  const defaultCompany = companies.find((c: any) => c.code === empresa)
+
+  if (!defaultCompany) {
+    return (
+      <div className="vehicles-page">
+        <h1>Nuevo vehículo</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/vehiculos/nuevo" />
+      </div>
+    )
+  }
 
   return (
     <div className="vehicles-page">

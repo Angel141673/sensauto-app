@@ -194,6 +194,7 @@ button {
 }
 
 .company-pill {
+  display: inline-block;
   border: 1px solid var(--graphite-600);
   background: transparent;
   color: var(--steel-300);
@@ -202,6 +203,7 @@ button {
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
+  text-decoration: none;
 }
 
 .company-pill.active {

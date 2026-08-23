@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 export default async function ClientesPage({
   searchParams,
@@ -21,7 +22,17 @@ export default async function ClientesPage({
     .eq('user_id', user.id)
 
   const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
-  const activeCode = empresa ?? companies[0]?.code
+
+  if (!empresa) {
+    return (
+      <div className="vehicles-page">
+        <h1>Clientes</h1>
+        <SelectCompanyPrompt companies={companies} basePath="/dashboard/clientes" showTodas />
+      </div>
+    )
+  }
+
+  const activeCode = empresa
   const activeCompany = companies.find((c: any) => c.code === activeCode)
   const isAll = activeCode === 'TODAS'
 
