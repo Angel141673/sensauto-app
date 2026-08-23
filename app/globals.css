@@ -1,0 +1,679 @@
+/* ============================================================
+   SENSAUTO — Sistema visual
+   Paleta pensada para un concesionario: grafito y acero (chapa,
+   metal, taller) con un acento cobre-óxido (color de chasis /
+   herramienta), no el naranja-crema genérico de IA.
+   Tipografía utilitaria: se usa en móvil/tablet con guantes
+   puestos, prioriza legibilidad y objetivos táctiles grandes.
+   ============================================================ */
+
+:root {
+  --graphite-950: #14181d;
+  --graphite-900: #1b2028;
+  --graphite-800: #262d38;
+  --graphite-600: #4a5568;
+  --steel-300: #cbd2dc;
+  --steel-100: #f0f2f5;
+  --white: #ffffff;
+  --copper-500: #c1622d;
+  --copper-600: #a34f21;
+  --ok-600: #2f7a4f;
+  --pending-600: #8a6d1c;
+
+  --radius: 10px;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--steel-100);
+  color: var(--graphite-900);
+  font-family: var(--font-ui);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ---------- Login ---------- */
+
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--graphite-950) 0%, var(--graphite-800) 100%);
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 32px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.login-logo {
+  height: 84px;
+  margin-bottom: 20px;
+}
+
+.login-card h1 {
+  font-size: 1.4rem;
+  margin: 0 0 4px;
+  color: var(--graphite-950);
+}
+
+.login-subtitle {
+  margin: 0 0 24px;
+  color: var(--graphite-600);
+  font-size: 0.9rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.login-form label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--graphite-600);
+  margin-top: 12px;
+}
+
+.login-form input {
+  padding: 12px 14px;
+  border: 1px solid var(--steel-300);
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.login-form input:focus-visible {
+  outline: 2px solid var(--copper-500);
+  outline-offset: 1px;
+}
+
+.login-form button {
+  margin-top: 22px;
+  padding: 13px;
+  border: none;
+  border-radius: 8px;
+  background: var(--copper-500);
+  color: var(--white);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.login-form button:hover {
+  background: var(--copper-600);
+}
+
+.login-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-error {
+  margin: 10px 0 0;
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+/* ---------- Dashboard shell ---------- */
+
+.dashboard-shell {
+  min-height: 100vh;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  background: var(--graphite-950);
+  flex-wrap: wrap;
+}
+
+.dashboard-header-left,
+.dashboard-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard-logo {
+  height: 40px;
+  background: var(--white);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.dashboard-greeting {
+  color: var(--steel-300);
+  font-size: 0.9rem;
+}
+
+.signout-btn {
+  background: transparent;
+  border: 1px solid var(--graphite-600);
+  color: var(--steel-300);
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 0.85rem;
+}
+
+.signout-btn:hover {
+  border-color: var(--copper-500);
+  color: var(--white);
+}
+
+.dashboard-main {
+  padding: 24px 20px 60px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* ---------- Company switcher ---------- */
+
+.company-switcher {
+  display: flex;
+  gap: 6px;
+}
+
+.company-pill {
+  border: 1px solid var(--graphite-600);
+  background: transparent;
+  color: var(--steel-300);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.company-pill.active {
+  background: var(--copper-500);
+  border-color: var(--copper-500);
+  color: var(--white);
+}
+
+.company-switcher-empty {
+  color: var(--steel-300);
+  font-size: 0.85rem;
+}
+
+/* ---------- Status page ---------- */
+
+.status-page h1 {
+  margin-bottom: 4px;
+}
+
+.status-intro {
+  color: var(--graphite-600);
+  margin-bottom: 24px;
+}
+
+.status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  font-size: 0.95rem;
+}
+
+.status-badge {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: var(--white);
+}
+
+.status-badge.status-implementado {
+  background: var(--ok-600);
+}
+
+.status-badge.status-parcial {
+  background: var(--pending-600);
+}
+
+.status-badge.status-pendiente {
+  background: var(--graphite-600);
+}
+
+/* ---------- Nav ---------- */
+
+.dashboard-nav {
+  display: flex;
+  gap: 18px;
+  padding: 10px 20px;
+  background: var(--graphite-900);
+  border-bottom: 1px solid var(--graphite-800);
+}
+
+.dashboard-nav a {
+  color: var(--steel-300);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.dashboard-nav a:hover {
+  color: var(--white);
+}
+
+/* ---------- Buttons ---------- */
+
+.primary-btn {
+  display: inline-block;
+  background: var(--copper-500);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.primary-btn:hover {
+  background: var(--copper-600);
+}
+
+/* ---------- Vehicles: list ---------- */
+
+.vehicles-page h1 {
+  margin: 0 0 16px;
+}
+
+.vehicles-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.vehicles-header h1 {
+  margin: 0;
+}
+
+.search-bar {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.search-bar input {
+  flex: 1;
+  padding: 11px 14px;
+  border: 1px solid var(--steel-300);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--white);
+}
+
+.search-bar button {
+  border: none;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: var(--graphite-900);
+  color: var(--white);
+  font-weight: 600;
+}
+
+.empty-state {
+  color: var(--graphite-600);
+  padding: 24px 0;
+}
+
+.vehicle-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vehicle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.vehicle-card:hover {
+  box-shadow: 0 2px 10px rgba(20, 24, 29, 0.08);
+}
+
+.vehicle-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vehicle-card-sub {
+  font-size: 0.82rem;
+  color: var(--graphite-600);
+}
+
+.vehicle-card-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.company-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--graphite-600);
+  border: 1px solid var(--steel-300);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+.estado-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--white);
+  white-space: nowrap;
+}
+
+.estado-entrada        { background: var(--graphite-600); }
+.estado-preparacion    { background: var(--pending-600); }
+.estado-disponible     { background: var(--ok-600); }
+.estado-reservado      { background: var(--copper-500); }
+.estado-vendido        { background: var(--graphite-950); }
+.estado-entregado      { background: var(--graphite-950); }
+.estado-posventa       { background: var(--graphite-600); }
+
+/* ---------- Vehicle form ---------- */
+
+.vehicle-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 640px;
+}
+
+.form-section {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.form-section h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.form-note {
+  color: var(--graphite-600);
+  font-size: 0.82rem;
+  margin: 0 0 12px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-field label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--graphite-600);
+}
+
+.form-field input,
+.form-field select,
+.vehicle-form textarea {
+  padding: 10px 12px;
+  border: 1px solid var(--steel-300);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  width: 100%;
+  font-family: inherit;
+}
+
+.vehicle-form textarea {
+  resize: vertical;
+}
+
+/* ---------- Vehicle detail ---------- */
+
+.detail-section {
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-top: 14px;
+}
+
+.detail-section h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.detail-grid dt {
+  font-size: 0.75rem;
+  color: var(--graphite-600);
+  margin-bottom: 2px;
+}
+
+.detail-grid dd {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.pending-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--graphite-600);
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+/* ---------- Operations / linking ---------- */
+
+.operation-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.operation-row .vehicle-card {
+  flex: 1;
+}
+
+.operation-estado-form {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.operation-estado-form select {
+  padding: 8px 10px;
+  border: 1px solid var(--steel-300);
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.secondary-btn {
+  border: 1px solid var(--graphite-600);
+  background: var(--white);
+  color: var(--graphite-900);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.secondary-btn:hover {
+  border-color: var(--copper-500);
+  color: var(--copper-600);
+}
+
+.link-vehicle-box {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--steel-100);
+}
+
+.link-vehicle-box h3 {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+}
+
+.link-vehicle-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.link-vehicle-form select {
+  padding: 10px 12px;
+  border: 1px solid var(--steel-300);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  min-width: 200px;
+}
+
+/* ---------- Documents ---------- */
+
+.duplicate-warning {
+  background: #fdf3e0;
+  border: 1px solid var(--pending-600);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.duplicate-warning p {
+  margin: 0 0 10px;
+  color: var(--graphite-900);
+  font-size: 0.9rem;
+}
+
+.success-note {
+  color: var(--ok-600);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.ocr-suggestion {
+  background: #eef4f0;
+  border: 1px solid var(--ok-600);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 10px 0;
+}
+
+.ocr-suggestion p {
+  margin: 0 0 8px;
+  font-size: 0.88rem;
+}
+
+/* ---------- Signature pad ---------- */
+
+.signature-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.signature-canvas {
+  width: 100%;
+  max-width: 560px;
+  height: 220px;
+  background: var(--white);
+  border: 2px dashed var(--steel-300);
+  border-radius: var(--radius);
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.signature-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* ---------- WhatsApp ---------- */
+
+.whatsapp-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.whatsapp-box select {
+  padding: 10px 12px;
+  border: 1px solid var(--steel-300);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.whatsapp-btn {
+  background: #25d366;
+  color: var(--white);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.whatsapp-btn:hover {
+  background: #1eb85a;
+}
