@@ -18,12 +18,18 @@ returns boolean
 language sql
 security definer
 stable
+set search_path = public
 as $$
   select exists (
     select 1 from public.user_companies uc
     where uc.user_id = auth.uid()
   );
 $$;
+
+-- SECURITY DEFINER + tabla propia sin RLS-recursión: solo debe poder
+-- llamarla un usuario ya autenticado, igual que user_has_company_access().
+revoke execute on function public.user_is_staff() from public;
+grant execute on function public.user_is_staff() to authenticated;
 
 -- ------------------------------------------------------------
 -- 2. CLIENTES: quitar la empresa fija
@@ -47,7 +53,7 @@ create policy "clients_staff_access"
 -- equivocarse. Ya no hay comprobación contra el cliente: el
 -- cliente no tiene empresa.
 create or replace function public.check_operation_company_consistency()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   vehicle_company uuid;
 begin
@@ -66,7 +72,7 @@ $$;
 -- 4. DOCUMENTOS Y FIRMAS: quitar la comprobación contra cliente
 -- ------------------------------------------------------------
 create or replace function public.check_document_company_consistency()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   v_company uuid;
   o_company uuid;
@@ -90,7 +96,7 @@ end;
 $$;
 
 create or replace function public.check_signature_company_consistency()
-returns trigger language plpgsql as $$
+returns trigger language plpgsql set search_path = public as $$
 declare
   o_company uuid;
 begin
