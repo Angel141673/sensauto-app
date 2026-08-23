@@ -1,14 +1,13 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ empresa?: string; q?: string }>
+  searchParams: Promise<{ q?: string }>
 }) {
-  const { empresa, q } = await searchParams
+  const { q } = await searchParams
   const supabase = await createClient()
 
   const {
@@ -16,34 +15,10 @@ export default async function ClientesPage({
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: memberships } = await supabase
-    .from('user_companies')
-    .select('company:companies(id, code, name)')
-    .eq('user_id', user.id)
-
-  const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
-
-  if (!empresa) {
-    return (
-      <div className="vehicles-page">
-        <h1>Clientes</h1>
-        <SelectCompanyPrompt companies={companies} basePath="/dashboard/clientes" showTodas />
-      </div>
-    )
-  }
-
-  const activeCode = empresa
-  const activeCompany = companies.find((c: any) => c.code === activeCode)
-  const isAll = activeCode === 'TODAS'
-
   let query = supabase
     .from('clients')
-    .select('id, nombre, telefono, email, company:companies(code)')
+    .select('id, nombre, telefono, email')
     .order('created_at', { ascending: false })
-
-  if (!isAll && activeCompany) {
-    query = query.eq('company_id', activeCompany.id)
-  }
 
   if (q && q.trim()) {
     const term = q.trim().replace(/[%_]/g, '')
@@ -56,22 +31,17 @@ export default async function ClientesPage({
     <div className="vehicles-page">
       <div className="vehicles-header">
         <h1>Clientes</h1>
-        {!isAll && activeCompany && (
-          <Link href={`/dashboard/clientes/nuevo?empresa=${activeCompany.code}`} className="primary-btn">
-            + Nuevo cliente
-          </Link>
-        )}
+        <Link href="/dashboard/clientes/nuevo" className="primary-btn">
+          + Nuevo cliente
+        </Link>
       </div>
 
-      {isAll && (
-        <p className="form-note">
-          Resumen conjunto de todas tus empresas. Para dar de alta un cliente,
-          elige primero SENSAUTO o SUNAUTO en el selector superior.
-        </p>
-      )}
+      <p className="form-note">
+        Los clientes son compartidos entre SENSAUTO y SUNAUTO — un mismo cliente puede tener
+        operaciones en ambas empresas.
+      </p>
 
       <form className="search-bar" action="/dashboard/clientes" method="get">
-        {empresa && <input type="hidden" name="empresa" value={empresa} />}
         <input type="text" name="q" placeholder="Buscar por nombre, teléfono o DNI/NIF…" defaultValue={q ?? ''} />
         <button type="submit">Buscar</button>
       </form>
@@ -94,7 +64,6 @@ export default async function ClientesPage({
                   {c.telefono || 'Sin teléfono'} {c.email ? `· ${c.email}` : ''}
                 </span>
               </div>
-              {isAll && <span className="company-tag">{c.company?.code}</span>}
             </Link>
           </li>
         ))}

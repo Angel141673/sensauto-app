@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation'
 import SignaturePad from '@/components/SignaturePad'
 import { saveSignature } from './actions'
 
-const TEXTOS_ACEPTACION: Record<string, string> = {
-  reserva:
-    'El cliente confirma la reserva del vehículo indicado y acepta las condiciones de reserva de SENSAUTO/SUNAUTO. La firma que aparece a continuación tiene la misma validez que una firma manuscrita en papel.',
-  compraventa:
-    'El cliente confirma la compraventa del vehículo indicado en las condiciones acordadas y acepta el contrato de compraventa de SENSAUTO/SUNAUTO. La firma que aparece a continuación tiene la misma validez que una firma manuscrita en papel.',
+function textosAceptacion(companyName: string): Record<string, string> {
+  return {
+    reserva:
+      `El cliente confirma la reserva del vehículo indicado y acepta las condiciones de reserva de ${companyName}. La firma que aparece a continuación tiene la misma validez que una firma manuscrita en papel.`,
+    compraventa:
+      `El cliente confirma la compraventa del vehículo indicado en las condiciones acordadas y acepta el contrato de compraventa de ${companyName}. La firma que aparece a continuación tiene la misma validez que una firma manuscrita en papel.`,
+  }
 }
 
 export default function SignatureCaptureForm({
@@ -32,6 +34,7 @@ export default function SignatureCaptureForm({
   const [blob, setBlob] = useState<Blob | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const textos = textosAceptacion(companyName)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -48,7 +51,7 @@ export default function SignatureCaptureForm({
     formData.set('operation_id', operationId)
     formData.set('client_id', clientId)
     formData.set('tipo_contrato', tipoContrato)
-    formData.set('texto_aceptacion', TEXTOS_ACEPTACION[tipoContrato])
+    formData.set('texto_aceptacion', textos[tipoContrato])
     formData.set('signature', blob, 'firma.png')
 
     try {
@@ -84,8 +87,8 @@ export default function SignatureCaptureForm({
 
       <section className="form-section">
         <h2>Texto de aceptación</h2>
-        <p className="form-note">{TEXTOS_ACEPTACION[tipoContrato]}</p>
-        <p className="form-note">Sello corporativo: SENSAUTO Motor · SUNAUTO — firma digital archivada con fecha.</p>
+        <p className="form-note">{textos[tipoContrato]}</p>
+        <p className="form-note">Sello corporativo: {companyName} — firma digital archivada con fecha.</p>
       </section>
 
       <section className="form-section">

@@ -1,14 +1,8 @@
-type Company = { id: string; code: string; name: string }
-
 export default function ClientForm({
   action,
-  companies,
-  defaultCompanyId,
   client,
 }: {
   action: (formData: FormData) => void
-  companies: Company[]
-  defaultCompanyId?: string
   client?: any
 }) {
   return (
@@ -16,22 +10,6 @@ export default function ClientForm({
       <section className="form-section">
         <h2>Datos del cliente</h2>
         <div className="form-grid">
-          <div className="form-field">
-            <label htmlFor="company_id">Empresa *</label>
-            <select
-              id="company_id"
-              name="company_id"
-              defaultValue={client?.company_id ?? defaultCompanyId}
-              required
-            >
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div className="form-field">
             <label htmlFor="nombre">Nombre *</label>
             <input id="nombre" name="nombre" defaultValue={client?.nombre} required />

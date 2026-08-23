@@ -6,7 +6,6 @@ import { revalidatePath } from 'next/cache'
 
 function readClientFields(formData: FormData) {
   return {
-    company_id: String(formData.get('company_id') ?? ''),
     nombre: String(formData.get('nombre') ?? '').trim(),
     telefono: (formData.get('telefono') as string) || null,
     email: (formData.get('email') as string) || null,
@@ -24,8 +23,8 @@ export async function createClientRecord(formData: FormData) {
   if (!user) redirect('/login')
 
   const fields = readClientFields(formData)
-  if (!fields.company_id || !fields.nombre) {
-    throw new Error('Empresa y nombre son obligatorios.')
+  if (!fields.nombre) {
+    throw new Error('El nombre es obligatorio.')
   }
 
   const { data, error } = await supabase
@@ -69,16 +68,16 @@ export async function linkVehicleToClient(clientId: string, formData: FormData) 
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const company_id = String(formData.get('company_id') ?? '')
   const vehicle_id = String(formData.get('vehicle_id') ?? '')
   const estado = String(formData.get('estado') ?? 'contacto')
 
-  if (!company_id || !vehicle_id) {
+  if (!vehicle_id) {
     throw new Error('Selecciona un vehículo para vincular.')
   }
 
+  // La empresa de la operación la asigna automáticamente un trigger en base
+  // de datos a partir del vehículo — nunca se elige a mano aquí.
   const { error } = await supabase.from('operations').insert({
-    company_id,
     vehicle_id,
     client_id: clientId,
     estado,
@@ -86,7 +85,7 @@ export async function linkVehicleToClient(clientId: string, formData: FormData) 
   })
 
   if (error) {
-    throw new Error('No se ha podido vincular el vehículo. Comprueba que pertenece a la misma empresa que el cliente.')
+    throw new Error('No se ha podido vincular el vehículo. Inténtalo de nuevo.')
   }
 
   revalidatePath(`/dashboard/clientes/${clientId}`)

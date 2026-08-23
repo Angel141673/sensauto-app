@@ -33,34 +33,26 @@ export default async function ClienteDetallePage({
 
   const { data: client, error } = await supabase
     .from('clients')
-    .select('*, company:companies(id, code, name)')
+    .select('*')
     .eq('id', id)
     .single()
 
   if (error || !client) notFound()
 
-  const { data: memberships } = await supabase
-    .from('user_companies')
-    .select('company:companies(id, code, name)')
-    .eq('user_id', user.id)
-  const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
-
   const { data: operations } = await supabase
     .from('operations')
-    .select('id, estado, created_at, vehicle:vehicles(id, marca, modelo, vin, estado)')
+    .select('id, estado, created_at, vehicle:vehicles(id, marca, modelo, vin, estado, company:companies(code))')
     .eq('client_id', client.id)
     .order('created_at', { ascending: false })
 
-  // Vehículos de la misma empresa que aún no están vinculados a este cliente,
-  // para poder elegirlos en el desplegable de vinculación.
+  // Vehículos de cualquiera de las dos empresas que aún no están vinculados
+  // a este cliente — un mismo cliente puede tener operaciones en ambas.
   const linkedVehicleIds = (operations ?? []).map((o: any) => o.vehicle?.id).filter(Boolean)
-  let availableVehiclesQuery = supabase
+  const { data: availableVehiclesRaw } = await supabase
     .from('vehicles')
-    .select('id, marca, modelo, vin')
-    .eq('company_id', client.company_id)
+    .select('id, marca, modelo, vin, company:companies(code)')
     .order('created_at', { ascending: false })
 
-  const { data: availableVehiclesRaw } = await availableVehiclesQuery
   const availableVehicles = (availableVehiclesRaw ?? []).filter(
     (v: any) => !linkedVehicleIds.includes(v.id)
   )
@@ -98,7 +90,7 @@ export default async function ClienteDetallePage({
     return (
       <div className="vehicles-page">
         <h1>Editar {client.nombre}</h1>
-        <ClientForm action={boundUpdate} companies={companies} client={client} />
+        <ClientForm action={boundUpdate} client={client} />
       </div>
     )
   }
@@ -115,7 +107,6 @@ export default async function ClienteDetallePage({
       <section className="detail-section">
         <h2>Datos</h2>
         <dl className="detail-grid">
-          <div><dt>Empresa</dt><dd>{client.company?.name}</dd></div>
           <div><dt>Teléfono</dt><dd>{client.telefono || '—'}</dd></div>
           <div><dt>Email</dt><dd>{client.email || '—'}</dd></div>
           <div><dt>DNI / NIF</dt><dd>{client.dni_nif || '—'}</dd></div>
@@ -148,6 +139,7 @@ export default async function ClienteDetallePage({
                     </strong>
                     <span className="vehicle-card-sub">{op.vehicle.vin || 'Sin VIN'}</span>
                   </div>
+                  <span className="company-tag">{op.vehicle.company?.code}</span>
                 </Link>
                 <form action={updateOperationEstado.bind(null, op.id)} className="operation-estado-form">
                   <input type="hidden" name="client_id" value={client.id} />
@@ -174,15 +166,14 @@ export default async function ClienteDetallePage({
           <h3>Vincular un vehículo</h3>
           {availableVehicles.length === 0 ? (
             <p className="form-note">
-              No hay más vehículos de {client.company?.code} disponibles para vincular.
+              No hay más vehículos disponibles para vincular.
             </p>
           ) : (
             <form action={boundLink} className="link-vehicle-form">
-              <input type="hidden" name="company_id" value={client.company_id} />
               <select name="vehicle_id" required>
                 {availableVehicles.map((v: any) => (
                   <option key={v.id} value={v.id}>
-                    {v.marca} {v.modelo} {v.vin ? `— ${v.vin}` : ''}
+                    {v.marca} {v.modelo} {v.vin ? `— ${v.vin}` : ''} — {v.company?.code}
                   </option>
                 ))}
               </select>
@@ -221,7 +212,7 @@ export default async function ClienteDetallePage({
             ))}
           </ul>
         )}
-        <Link href={`/dashboard/documentos?empresa=${client.company.code}&cliente=${client.id}`} className="secondary-btn" style={{ display: 'inline-block', marginTop: 10 }}>
+        <Link href={`/dashboard/documentos?cliente=${client.id}`} className="secondary-btn" style={{ display: 'inline-block', marginTop: 10 }}>
           Ir a documentos de este cliente
         </Link>
       </section>
