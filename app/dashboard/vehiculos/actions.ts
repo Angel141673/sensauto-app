@@ -3,9 +3,42 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { analyzeVehiclePurchaseInvoice, type VehiclePurchaseAnalysis } from '@/lib/anthropicInvoice'
 
 export type VehicleFormState = {
   error?: string
+}
+
+export type AnalyzeVehicleState = {
+  status: 'idle' | 'success' | 'error'
+  message?: string
+  analysis?: VehiclePurchaseAnalysis
+}
+
+// Analiza la foto de la factura de compra con IA y devuelve una PROPUESTA.
+// No guarda nada: el usuario revisa/edita los campos y confirma con el
+// formulario normal (createVehicle).
+export async function analyzeVehiclePurchaseWithAI(
+  prevState: AnalyzeVehicleState,
+  formData: FormData
+): Promise<AnalyzeVehicleState> {
+  const file = formData.get('file') as File | null
+
+  if (!file || file.size === 0) {
+    return { status: 'error', message: 'Selecciona primero una foto de la factura de compra.' }
+  }
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const base64 = buffer.toString('base64')
+    const analysis = await analyzeVehiclePurchaseInvoice(base64, file.type || 'image/jpeg')
+    return { status: 'success', analysis }
+  } catch (err: any) {
+    return {
+      status: 'error',
+      message: err?.message ?? 'No se ha podido analizar la factura con la IA.',
+    }
+  }
 }
 
 function readVehicleFields(formData: FormData) {
@@ -20,6 +53,8 @@ function readVehicleFields(formData: FormData) {
     combustible: (formData.get('combustible') as string) || null,
     transmision: (formData.get('transmision') as string) || null,
     color: (formData.get('color') as string) || null,
+    motor: (formData.get('motor') as string) || null,
+    fecha_matriculacion: (formData.get('fecha_matriculacion') as string) || null,
     precio_compra: formData.get('precio_compra') ? Number(formData.get('precio_compra')) : null,
     precio_venta_previsto: formData.get('precio_venta_previsto')
       ? Number(formData.get('precio_venta_previsto'))

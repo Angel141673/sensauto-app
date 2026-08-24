@@ -134,8 +134,13 @@ export default async function VehiculoDetallePage({
       <section className="detail-section">
         <h2>Datos técnicos</h2>
         <dl className="detail-grid">
+          <div>
+            <dt>Fecha de matriculación</dt>
+            <dd>{vehicle.fecha_matriculacion ? new Date(vehicle.fecha_matriculacion).toLocaleDateString('es-ES') : '—'}</dd>
+          </div>
           <div><dt>Año</dt><dd>{vehicle.anio ?? '—'}</dd></div>
           <div><dt>Kilómetros</dt><dd>{vehicle.km ?? '—'}</dd></div>
+          <div><dt>Motor</dt><dd>{vehicle.motor || '—'}</dd></div>
           <div><dt>Combustible</dt><dd>{vehicle.combustible || '—'}</dd></div>
           <div><dt>Transmisión</dt><dd>{vehicle.transmision || '—'}</dd></div>
           <div><dt>Color</dt><dd>{vehicle.color || '—'}</dd></div>
