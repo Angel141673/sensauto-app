@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { randomUUID } from 'crypto'
 import { analyzeVehiclePurchaseInvoice, type VehiclePurchaseAnalysis } from '@/lib/anthropicInvoice'
 
 export type VehicleFormState = {
@@ -64,6 +65,7 @@ function readVehicleFields(formData: FormData) {
       : null,
     fecha_venta: (formData.get('fecha_venta') as string) || null,
     estado: String(formData.get('estado') ?? 'entrada'),
+    numero_llave: (formData.get('numero_llave') ? String(formData.get('numero_llave')).trim() : null) || null,
     notas: (formData.get('notas') as string) || null,
   }
 }
@@ -123,4 +125,76 @@ export async function updateVehicle(vehicleId: string, formData: FormData) {
   revalidatePath(`/dashboard/vehiculos/${vehicleId}`)
   revalidatePath('/dashboard/vehiculos')
   redirect(`/dashboard/vehiculos/${vehicleId}`)
+}
+
+export type UploadPhotoState = {
+  status: 'idle' | 'error'
+  message?: string
+}
+
+// Solo se conserva una foto por vehículo: al subir una nueva se borra la
+// anterior (si había) tanto de storage como el path guardado en la fila.
+export async function uploadVehiclePhoto(
+  vehicleId: string,
+  companyId: string,
+  previousFotoPath: string | null,
+  prevState: UploadPhotoState,
+  formData: FormData
+): Promise<UploadPhotoState> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const file = formData.get('file') as File | null
+  if (!file || file.size === 0) {
+    return { status: 'error', message: 'Selecciona una foto.' }
+  }
+  if (!file.type.startsWith('image/')) {
+    return { status: 'error', message: 'El archivo debe ser una imagen.' }
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const storagePath = `${companyId}/${vehicleId}/${randomUUID()}-${file.name}`
+
+  const { error: uploadError } = await supabase.storage
+    .from('vehicle-photos')
+    .upload(storagePath, buffer, { contentType: file.type })
+
+  if (uploadError) {
+    return { status: 'error', message: 'No se ha podido subir la foto. Inténtalo de nuevo.' }
+  }
+
+  const { error: updateError } = await supabase
+    .from('vehicles')
+    .update({ foto_path: storagePath })
+    .eq('id', vehicleId)
+
+  if (updateError) {
+    await supabase.storage.from('vehicle-photos').remove([storagePath])
+    return { status: 'error', message: 'No se ha podido guardar la foto. Inténtalo de nuevo.' }
+  }
+
+  if (previousFotoPath) {
+    await supabase.storage.from('vehicle-photos').remove([previousFotoPath])
+  }
+
+  revalidatePath(`/dashboard/vehiculos/${vehicleId}`)
+  revalidatePath('/dashboard/vehiculos')
+  return { status: 'idle' }
+}
+
+export async function deleteVehiclePhoto(vehicleId: string, fotoPath: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  await supabase.storage.from('vehicle-photos').remove([fotoPath])
+  await supabase.from('vehicles').update({ foto_path: null }).eq('id', vehicleId)
+
+  revalidatePath(`/dashboard/vehiculos/${vehicleId}`)
+  revalidatePath('/dashboard/vehiculos')
 }

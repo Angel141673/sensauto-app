@@ -48,7 +48,7 @@ export default async function VehiculosPage({
 
   let query = supabase
     .from('vehicles')
-    .select('id, marca, modelo, vin, matricula, estado, precio_venta_previsto, company:companies(code)')
+    .select('id, marca, modelo, vin, matricula, estado, precio_venta_previsto, foto_path, company:companies(code)')
     .order('created_at', { ascending: false })
 
   if (!isAll && activeCompany) {
@@ -61,6 +61,14 @@ export default async function VehiculosPage({
   }
 
   const { data: vehicles, error } = await query
+
+  const vehiclesWithFoto = await Promise.all(
+    (vehicles ?? []).map(async (v: any) => {
+      if (!v.foto_path) return { ...v, fotoUrl: null }
+      const { data } = await supabase.storage.from('vehicle-photos').createSignedUrl(v.foto_path, 60 * 5)
+      return { ...v, fotoUrl: data?.signedUrl ?? null }
+    })
+  )
 
   return (
     <div className="vehicles-page">
@@ -104,9 +112,14 @@ export default async function VehiculosPage({
       )}
 
       <ul className="vehicle-list">
-        {vehicles?.map((v: any) => (
+        {vehiclesWithFoto.map((v: any) => (
           <li key={v.id}>
             <Link href={`/dashboard/vehiculos/${v.id}`} className="vehicle-card">
+              {v.fotoUrl ? (
+                <img src={v.fotoUrl} alt="" className="vehicle-card-thumb" />
+              ) : (
+                <div className="vehicle-card-thumb vehicle-card-thumb-empty" aria-hidden="true" />
+              )}
               <div className="vehicle-card-main">
                 <strong>
                   {v.marca} {v.modelo}

@@ -46,6 +46,7 @@ export default function VehicleForm({
   const [vin, setVin] = useState(vehicle?.vin ?? '')
   const [matricula, setMatricula] = useState(vehicle?.matricula ?? '')
   const [estado, setEstado] = useState(vehicle?.estado ?? 'entrada')
+  const [numeroLlave, setNumeroLlave] = useState(vehicle?.numero_llave ?? '')
   const [anio, setAnio] = useState(vehicle?.anio ?? '')
   const [km, setKm] = useState(vehicle?.km ?? '')
   const [combustible, setCombustible] = useState(vehicle?.combustible ?? '')
@@ -221,6 +222,16 @@ export default function VehicleForm({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="form-field">
+            <label htmlFor="numero_llave">Número de llave (interno)</label>
+            <input
+              id="numero_llave"
+              name="numero_llave"
+              value={numeroLlave}
+              onChange={(e) => setNumeroLlave(e.target.value)}
+            />
           </div>
         </div>
       </section>

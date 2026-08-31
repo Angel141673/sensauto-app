@@ -387,10 +387,24 @@ button {
   box-shadow: 0 2px 10px rgba(20, 24, 29, 0.08);
 }
 
+.vehicle-card-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--graphite-100, #e8e8e8);
+}
+
+.vehicle-card-thumb-empty {
+  border: 1px dashed var(--graphite-300, #c7c7c7);
+}
+
 .vehicle-card-main {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex: 1;
 }
 
 .vehicle-card-sub {
@@ -496,6 +510,34 @@ button {
   border-radius: var(--radius);
   padding: 18px 20px;
   margin-top: 14px;
+}
+
+.vehicle-photo-section {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.vehicle-photo-current {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.vehicle-photo-img {
+  max-width: 320px;
+  max-height: 220px;
+  border-radius: var(--radius);
+  object-fit: cover;
+}
+
+.vehicle-photo-upload-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .detail-section h2 {

@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import VehicleForm from '@/components/VehicleForm'
 import VehicleDocumentsSection from '@/components/VehicleDocumentsSection'
+import VehiclePhotoSection from '@/components/VehiclePhotoSection'
 import { updateVehicle } from '../actions'
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -64,6 +65,10 @@ export default async function VehiculoDetallePage({
     .select('id, estado, client:clients(id, nombre, telefono, email)')
     .eq('vehicle_id', vehicle.id)
     .order('created_at', { ascending: false })
+
+  const { data: fotoSigned } = vehicle.foto_path
+    ? await supabase.storage.from('vehicle-photos').createSignedUrl(vehicle.foto_path, 60 * 5)
+    : { data: null }
 
   const { data: vehicleDocuments } = await supabase
     .from('vehicle_documents')
@@ -141,12 +146,20 @@ export default async function VehiculoDetallePage({
         {ESTADO_LABEL[vehicle.estado] ?? vehicle.estado}
       </span>
 
+      <VehiclePhotoSection
+        vehicleId={vehicle.id}
+        companyId={vehicle.company_id}
+        fotoPath={vehicle.foto_path}
+        fotoUrl={fotoSigned?.signedUrl ?? null}
+      />
+
       <section className="detail-section">
         <h2>Identificación</h2>
         <dl className="detail-grid">
           <div><dt>Empresa</dt><dd>{vehicle.company?.name}</dd></div>
           <div><dt>Bastidor / VIN</dt><dd>{vehicle.vin || '—'}</dd></div>
           <div><dt>Matrícula</dt><dd>{vehicle.matricula || '—'}</dd></div>
+          <div><dt>Número de llave</dt><dd>{vehicle.numero_llave || '—'}</dd></div>
         </dl>
       </section>
 
