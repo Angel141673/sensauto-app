@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import VehicleForm from '@/components/VehicleForm'
+import VehicleDocumentsSection from '@/components/VehicleDocumentsSection'
 import { updateVehicle } from '../actions'
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -60,9 +61,27 @@ export default async function VehiculoDetallePage({
 
   const { data: operations } = await supabase
     .from('operations')
-    .select('id, estado, client:clients(id, nombre, telefono)')
+    .select('id, estado, client:clients(id, nombre, telefono, email)')
     .eq('vehicle_id', vehicle.id)
     .order('created_at', { ascending: false })
+
+  const { data: vehicleDocuments } = await supabase
+    .from('vehicle_documents')
+    .select('id, tipo_documento, nombre_archivo, storage_path, tamano_bytes, fecha_subida')
+    .eq('vehicle_id', vehicle.id)
+    .order('fecha_subida', { ascending: false })
+
+  const vehicleDocumentsWithUrls = await Promise.all(
+    (vehicleDocuments ?? []).map(async (doc: any) => {
+      const { data } = await supabase.storage.from('vehicle-documents').createSignedUrl(doc.storage_path, 60 * 5)
+      return { ...doc, url: data?.signedUrl ?? null }
+    })
+  )
+
+  // Cliente al que ofrecer por defecto en el envío de documentación: el de
+  // la operación más reciente (mismo criterio que el trigger que vincula
+  // automáticamente client_id en vehicle_documents al vender/entregar).
+  const clienteEmail = (operations?.[0] as any)?.client?.email ?? null
 
   const { data: documents } = await supabase
     .from('documents')
@@ -187,6 +206,16 @@ export default async function VehiculoDetallePage({
           </ul>
         )}
       </section>
+
+      <VehicleDocumentsSection
+        vehicleId={vehicle.id}
+        companyId={vehicle.company_id}
+        companyCode={vehicle.company?.code ?? ''}
+        vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
+        estado={vehicle.estado}
+        documentos={vehicleDocumentsWithUrls}
+        clienteEmail={clienteEmail}
+      />
 
       <section className="detail-section">
         <h2>Documentos</h2>

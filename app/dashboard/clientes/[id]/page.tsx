@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import ClientForm from '@/components/ClientForm'
 import WhatsAppButton from '@/components/WhatsAppButton'
+import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSection'
 import { updateClientRecord, linkVehicleToClient, updateOperationEstado } from '../actions'
 
 const ESTADO_OPERACION_LABEL: Record<string, string> = {
@@ -82,6 +83,28 @@ export default async function ClienteDetallePage({
       return { ...s, url: data?.signedUrl ?? null }
     })
   )
+
+  const vehicleIds = linkedVehicleIds as string[]
+  const { data: allVehicleDocuments } = vehicleIds.length
+    ? await supabase
+        .from('vehicle_documents')
+        .select('id, vehicle_id, tipo_documento, nombre_archivo, storage_path, tamano_bytes')
+        .in('vehicle_id', vehicleIds)
+        .order('fecha_subida', { ascending: false })
+    : { data: [] }
+
+  const vehicleDocumentsWithUrls = await Promise.all(
+    (allVehicleDocuments ?? []).map(async (doc: any) => {
+      const { data } = await supabase.storage.from('vehicle-documents').createSignedUrl(doc.storage_path, 60 * 5)
+      return { ...doc, url: data?.signedUrl ?? null }
+    })
+  )
+
+  const vehiculosConDocs = (operations ?? []).map((op: any) => ({
+    vehicleId: op.vehicle.id,
+    vehiculoLabel: `${op.vehicle.marca} ${op.vehicle.modelo}`,
+    documentos: vehicleDocumentsWithUrls.filter((d: any) => d.vehicle_id === op.vehicle.id),
+  }))
 
   const boundUpdate = updateClientRecord.bind(null, client.id)
   const boundLink = linkVehicleToClient.bind(null, client.id)
@@ -191,6 +214,8 @@ export default async function ClienteDetallePage({
           )}
         </div>
       </section>
+
+      <ClientVehicleDocumentsSection vehiculos={vehiculosConDocs} clienteEmail={client.email} />
 
       <section className="detail-section">
         <h2>Documentos</h2>
