@@ -45,7 +45,7 @@ export default function VehicleDocumentsSection({
   documentos: Doc[]
   clienteEmail: string | null
 }) {
-  const [tipoSeleccionado, setTipoSeleccionado] = useState<VehicleDocumentTipo>('ficha_tecnica')
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<VehicleDocumentTipo>('contrato_compraventa')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
 

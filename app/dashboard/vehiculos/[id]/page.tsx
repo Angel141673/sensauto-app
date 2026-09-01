@@ -4,6 +4,7 @@ import Link from 'next/link'
 import VehicleForm from '@/components/VehicleForm'
 import VehicleDocumentsSection from '@/components/VehicleDocumentsSection'
 import VehiclePhotoSection from '@/components/VehiclePhotoSection'
+import GenerateProformaButton from '@/components/GenerateProformaButton'
 import { updateVehicle } from '../actions'
 
 const ESTADO_LABEL: Record<string, string> = {
@@ -69,6 +70,11 @@ export default async function VehiculoDetallePage({
   const { data: fotoSigned } = vehicle.foto_path
     ? await supabase.storage.from('vehicle-photos').createSignedUrl(vehicle.foto_path, 60 * 5)
     : { data: null }
+
+  const { data: allClients } = await supabase
+    .from('clients')
+    .select('id, nombre')
+    .order('nombre', { ascending: true })
 
   const { data: vehicleDocuments } = await supabase
     .from('vehicle_documents')
@@ -137,9 +143,17 @@ export default async function VehiculoDetallePage({
         <h1>
           {vehicle.marca} {vehicle.modelo}
         </h1>
-        <Link href={`/dashboard/vehiculos/${vehicle.id}?editar=1`} className="primary-btn">
-          Editar
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href={`/dashboard/vehiculos/${vehicle.id}?editar=1`} className="primary-btn">
+            Editar
+          </Link>
+          <GenerateProformaButton
+            vehicleId={vehicle.id}
+            vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
+            clients={allClients ?? []}
+            precioSugerido={vehicle.precio_venta_previsto}
+          />
+        </div>
       </div>
 
       <span className={`estado-badge estado-${vehicle.estado}`}>

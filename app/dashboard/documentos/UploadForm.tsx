@@ -4,9 +4,13 @@ import { useState } from 'react'
 import { useFormState } from 'react-dom'
 import { uploadDocument, type UploadState } from './actions'
 
+// "Factura / gasto" no está aquí a propósito: esas facturas se registran
+// desde Gastos (que crea su propio documento vinculado), para que el
+// total cuente en inversión/márgenes. "Presupuesto" tampoco está: se
+// genera desde la ficha del vehículo (botón "Generar presupuesto"), que
+// ya lo guarda aquí automáticamente.
 const TIPOS = [
   { value: 'vehiculo', label: 'Documentación del vehículo' },
-  { value: 'factura', label: 'Factura / gasto' },
   { value: 'contrato_reserva', label: 'Contrato de reserva' },
   { value: 'contrato_compraventa', label: 'Contrato de compraventa' },
   { value: 'tramite', label: 'Trámite' },

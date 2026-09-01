@@ -11,6 +11,7 @@ const TIPO_LABEL: Record<string, string> = {
   contrato_compraventa: 'Contrato de compraventa',
   tramite: 'Trámite',
   otro: 'Otro',
+  presupuesto: 'Presupuesto / factura proforma',
 }
 
 export default async function DocumentosPage({

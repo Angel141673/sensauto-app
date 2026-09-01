@@ -107,7 +107,6 @@ export default function SendDocumentsModal({
                   {d.tipo_documento === 'factura_compra' && (
                     <span className="warning-tag">⚠️ Documento interno — normalmente no se envía al cliente</span>
                   )}
-                  {d.tipo_documento === 'otro' && <span className="warning-tag">Revisar caso a caso</span>}
                 </label>
               </li>
             ))}
