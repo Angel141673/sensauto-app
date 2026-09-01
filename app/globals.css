@@ -216,6 +216,7 @@ button {
 
 .company-switcher {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -230,6 +231,7 @@ button {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .company-pill.active {
@@ -294,6 +296,12 @@ button {
   border-bottom: 2px solid var(--brand-accent);
   transition: border-color 0.2s ease;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.dashboard-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .dashboard-nav-link {
