@@ -1,55 +1,27 @@
-// Reglas compartidas de la gestión documental por vehículo: qué tipos
-// existen, cómo se llaman en pantalla, cuáles son obligatorios para el
-// badge de alerta, y cómo viene marcado el checklist al enviar al cliente.
+// Ficha técnica por vehículo: la única documentación que vive en su propia
+// tabla (public.vehicle_documents), porque necesita la estructura de
+// país de origen / española × cara A / cara B. El resto de documentación
+// del vehículo (contratos, facturas...) vive en public.documents — ver
+// lib/documents.ts — para que aparezca tanto en la ficha del vehículo
+// como en la pestaña general "Documentos".
 
 export type VehicleDocumentTipo =
-  | 'contrato_reserva'
-  | 'contrato_compraventa'
-  | 'factura_compra'
-  | 'factura_venta'
   | 'ficha_tecnica_origen_a'
   | 'ficha_tecnica_origen_b'
   | 'ficha_tecnica_espanola_a'
   | 'ficha_tecnica_espanola_b'
 
 export const TIPO_DOCUMENTO_LABEL: Record<VehicleDocumentTipo, string> = {
-  contrato_reserva: 'Contrato de reserva',
-  contrato_compraventa: 'Contrato de compraventa',
-  factura_compra: 'Factura de compra',
-  factura_venta: 'Factura de venta',
   ficha_tecnica_origen_a: 'Ficha técnica país de origen (cara A)',
   ficha_tecnica_origen_b: 'Ficha técnica país de origen (cara B)',
   ficha_tecnica_espanola_a: 'Ficha técnica española (cara A)',
   ficha_tecnica_espanola_b: 'Ficha técnica española (cara B)',
 }
 
-export const TIPOS_DOCUMENTO: VehicleDocumentTipo[] = [
-  'contrato_reserva',
-  'contrato_compraventa',
-  'factura_compra',
-  'factura_venta',
-  'ficha_tecnica_origen_a',
-  'ficha_tecnica_origen_b',
-  'ficha_tecnica_espanola_a',
-  'ficha_tecnica_espanola_b',
-]
-
 // Documentos clave para el badge de alerta en la ficha del vehículo: la
 // ficha técnica española (las dos caras) es la que hace falta para poder
 // matricular/vender el coche en España.
 export const TIPOS_CLAVE: VehicleDocumentTipo[] = [
-  'ficha_tecnica_espanola_a',
-  'ficha_tecnica_espanola_b',
-]
-
-// Al abrir el modal de envío al cliente, qué viene marcado por defecto.
-// factura_compra es un documento interno — nunca marcado por defecto.
-export const TIPOS_MARCADOS_POR_DEFECTO: VehicleDocumentTipo[] = [
-  'contrato_reserva',
-  'contrato_compraventa',
-  'factura_venta',
-  'ficha_tecnica_origen_a',
-  'ficha_tecnica_origen_b',
   'ficha_tecnica_espanola_a',
   'ficha_tecnica_espanola_b',
 ]

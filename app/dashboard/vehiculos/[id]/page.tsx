@@ -3,9 +3,13 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import VehicleForm from '@/components/VehicleForm'
 import VehicleDocumentsSection from '@/components/VehicleDocumentsSection'
+import VehicleGeneralDocuments from '@/components/VehicleGeneralDocuments'
 import VehiclePhotoSection from '@/components/VehiclePhotoSection'
 import GenerateProformaButton from '@/components/GenerateProformaButton'
 import { updateVehicle } from '../actions'
+import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
+import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
+import type { SendableDoc } from '@/components/SendDocumentsModal'
 
 const ESTADO_LABEL: Record<string, string> = {
   entrada: 'Entrada / compra',
@@ -84,7 +88,9 @@ export default async function VehiculoDetallePage({
 
   const vehicleDocumentsWithUrls = await Promise.all(
     (vehicleDocuments ?? []).map(async (doc: any) => {
-      const { data } = await supabase.storage.from('vehicle-documents').createSignedUrl(doc.storage_path, 60 * 5)
+      const { data } = await supabase.storage
+        .from('vehicle-documents')
+        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -102,7 +108,9 @@ export default async function VehiculoDetallePage({
 
   const documentsWithUrls = await Promise.all(
     (documents ?? []).map(async (doc: any) => {
-      const { data } = await supabase.storage.from('documentos').createSignedUrl(doc.storage_path, 60 * 5)
+      const { data } = await supabase.storage
+        .from('documentos')
+        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -114,6 +122,23 @@ export default async function VehiculoDetallePage({
     .order('fecha', { ascending: false })
 
   const totalGastos = (expenses ?? []).reduce((acc, e: any) => acc + Number(e.total || 0), 0)
+
+  // Combina ficha técnica (vehicle_documents) + resto de documentación
+  // (documents) en una sola lista para "Enviar documentación al cliente".
+  const sendableDocs: SendableDoc[] = [
+    ...vehicleDocumentsWithUrls.map((d: any) => ({
+      id: d.id,
+      label: FICHA_TECNICA_LABEL[d.tipo_documento as keyof typeof FICHA_TECNICA_LABEL] ?? d.tipo_documento,
+      nombre_archivo: d.nombre_archivo,
+      marcadoPorDefecto: true,
+    })),
+    ...documentsWithUrls.map((d: any) => ({
+      id: d.id,
+      label: DOCUMENT_TIPO_LABEL[d.tipo as keyof typeof DOCUMENT_TIPO_LABEL] ?? d.tipo,
+      nombre_archivo: d.nombre_archivo,
+      ...opcionesEnvioParaTipo(d.tipo),
+    })),
+  ]
 
   // Inversión total = precio de compra + gastos asociados (Bloque 8 ya
   // implementado: la suma es real, no solo el precio de compra).
@@ -238,36 +263,18 @@ export default async function VehiculoDetallePage({
         vehicleId={vehicle.id}
         companyId={vehicle.company_id}
         companyCode={vehicle.company?.code ?? ''}
-        vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
-        estado={vehicle.estado}
         documentos={vehicleDocumentsWithUrls}
-        clienteEmail={clienteEmail}
       />
 
-      <section className="detail-section">
-        <h2>Documentos</h2>
-        {documentsWithUrls.length === 0 && (
-          <p className="empty-state">Sin documentos todavía.</p>
-        )}
-        {documentsWithUrls.length > 0 && (
-          <ul className="pending-list">
-            {documentsWithUrls.map((doc: any) => (
-              <li key={doc.id}>
-                {doc.url ? (
-                  <a href={doc.url} target="_blank" rel="noreferrer">{doc.nombre_archivo}</a>
-                ) : (
-                  doc.nombre_archivo
-                )}
-                {' — '}
-                {new Date(doc.created_at).toLocaleDateString('es-ES')}
-              </li>
-            ))}
-          </ul>
-        )}
-        <Link href={`/dashboard/documentos?empresa=${vehicle.company.code}&vehiculo=${vehicle.id}`} className="secondary-btn" style={{ display: 'inline-block', marginTop: 10 }}>
-          Ir a documentos de este vehículo
-        </Link>
-      </section>
+      <VehicleGeneralDocuments
+        vehicleId={vehicle.id}
+        companyId={vehicle.company_id}
+        vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
+        estado={vehicle.estado}
+        documentos={documentsWithUrls}
+        sendableDocs={sendableDocs}
+        clienteEmail={clienteEmail}
+      />
 
       <section className="detail-section">
         <h2>Gastos asociados</h2>

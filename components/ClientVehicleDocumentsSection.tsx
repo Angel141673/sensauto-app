@@ -1,16 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import SendDocumentsModal from './SendDocumentsModal'
-import { TIPO_DOCUMENTO_LABEL, formatBytes, type VehicleDocumentTipo } from '@/lib/vehicleDocuments'
+import SendDocumentsModal, { type SendableDoc } from './SendDocumentsModal'
 
-type Doc = {
-  id: string
-  tipo_documento: VehicleDocumentTipo
-  nombre_archivo: string
-  tamano_bytes: number | null
-  url: string | null
-}
+type Doc = SendableDoc & { url: string | null }
 
 type VehiculoConDocs = {
   vehicleId: string
@@ -49,13 +42,11 @@ export default function ClientVehicleDocumentsSection({
               <li key={doc.id}>
                 {doc.url ? (
                   <a href={doc.url} target="_blank" rel="noreferrer">
-                    {TIPO_DOCUMENTO_LABEL[doc.tipo_documento]} — {doc.nombre_archivo}
+                    {doc.label} — {doc.nombre_archivo}
                   </a>
                 ) : (
-                  `${TIPO_DOCUMENTO_LABEL[doc.tipo_documento]} — ${doc.nombre_archivo}`
+                  `${doc.label} — ${doc.nombre_archivo}`
                 )}
-                {' · '}
-                {formatBytes(doc.tamano_bytes)}
               </li>
             ))}
           </ul>

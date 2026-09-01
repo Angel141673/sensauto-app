@@ -3,16 +3,7 @@ import { redirect } from 'next/navigation'
 import DocumentUploadForm from './UploadForm'
 import { deleteDocument } from './actions'
 import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
-
-const TIPO_LABEL: Record<string, string> = {
-  vehiculo: 'Documentación del vehículo',
-  factura: 'Factura / gasto',
-  contrato_reserva: 'Contrato de reserva',
-  contrato_compraventa: 'Contrato de compraventa',
-  tramite: 'Trámite',
-  otro: 'Otro',
-  presupuesto: 'Presupuesto / factura proforma',
-}
+import { DOCUMENT_TIPO_LABEL as TIPO_LABEL, type DocumentTipo } from '@/lib/documents'
 
 export default async function DocumentosPage({
   searchParams,
@@ -55,8 +46,7 @@ export default async function DocumentosPage({
     supabase
       .from('clients')
       .select('id, nombre')
-      .eq('company_id', activeCompany.id)
-      .order('created_at', { ascending: false }),
+      .order('nombre', { ascending: true }),
   ])
 
   let query = supabase
@@ -76,7 +66,7 @@ export default async function DocumentosPage({
     (documents ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('documentos')
-        .createSignedUrl(doc.storage_path, 60 * 5)
+        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -120,7 +110,7 @@ export default async function DocumentosPage({
             <div className="vehicle-card-main">
               <strong>{doc.nombre_archivo}</strong>
               <span className="vehicle-card-sub">
-                {TIPO_LABEL[doc.tipo] ?? doc.tipo}
+                {TIPO_LABEL[doc.tipo as DocumentTipo] ?? doc.tipo}
                 {doc.vehicle ? ` · ${doc.vehicle.marca} ${doc.vehicle.modelo}` : ''}
                 {doc.client ? ` · ${doc.client.nombre}` : ''}
                 {' · '}

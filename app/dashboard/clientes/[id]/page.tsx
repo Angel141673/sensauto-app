@@ -5,6 +5,8 @@ import ClientForm from '@/components/ClientForm'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSection'
 import { updateClientRecord, linkVehicleToClient, updateOperationEstado } from '../actions'
+import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
+import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
 
 const ESTADO_OPERACION_LABEL: Record<string, string> = {
   contacto: 'Contacto',
@@ -66,7 +68,9 @@ export default async function ClienteDetallePage({
 
   const documentsWithUrls = await Promise.all(
     (documents ?? []).map(async (doc: any) => {
-      const { data } = await supabase.storage.from('documentos').createSignedUrl(doc.storage_path, 60 * 5)
+      const { data } = await supabase.storage
+        .from('documentos')
+        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -79,7 +83,7 @@ export default async function ClienteDetallePage({
 
   const signaturesWithUrls = await Promise.all(
     (signatures ?? []).map(async (s: any) => {
-      const { data } = await supabase.storage.from('firmas').createSignedUrl(s.storage_path, 60 * 5)
+      const { data } = await supabase.storage.from('firmas').createSignedUrl(s.storage_path, 60 * 5, { download: true })
       return { ...s, url: data?.signedUrl ?? null }
     })
   )
@@ -95,7 +99,28 @@ export default async function ClienteDetallePage({
 
   const vehicleDocumentsWithUrls = await Promise.all(
     (allVehicleDocuments ?? []).map(async (doc: any) => {
-      const { data } = await supabase.storage.from('vehicle-documents').createSignedUrl(doc.storage_path, 60 * 5)
+      const { data } = await supabase.storage
+        .from('vehicle-documents')
+        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+      return { ...doc, url: data?.signedUrl ?? null }
+    })
+  )
+
+  // Resto de documentación de esos mismos vehículos (contratos, facturas...)
+  // — misma tabla que usa la pestaña general "Documentos".
+  const { data: allVehicleOtherDocs } = vehicleIds.length
+    ? await supabase
+        .from('documents')
+        .select('id, vehicle_id, tipo, nombre_archivo, storage_path')
+        .in('vehicle_id', vehicleIds)
+        .order('created_at', { ascending: false })
+    : { data: [] }
+
+  const vehicleOtherDocsWithUrls = await Promise.all(
+    (allVehicleOtherDocs ?? []).map(async (doc: any) => {
+      const { data } = await supabase.storage
+        .from('documentos')
+        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -103,7 +128,26 @@ export default async function ClienteDetallePage({
   const vehiculosConDocs = (operations ?? []).map((op: any) => ({
     vehicleId: op.vehicle.id,
     vehiculoLabel: `${op.vehicle.marca} ${op.vehicle.modelo}`,
-    documentos: vehicleDocumentsWithUrls.filter((d: any) => d.vehicle_id === op.vehicle.id),
+    documentos: [
+      ...vehicleDocumentsWithUrls
+        .filter((d: any) => d.vehicle_id === op.vehicle.id)
+        .map((d: any) => ({
+          id: d.id,
+          label: FICHA_TECNICA_LABEL[d.tipo_documento as keyof typeof FICHA_TECNICA_LABEL] ?? d.tipo_documento,
+          nombre_archivo: d.nombre_archivo,
+          url: d.url,
+          marcadoPorDefecto: true,
+        })),
+      ...vehicleOtherDocsWithUrls
+        .filter((d: any) => d.vehicle_id === op.vehicle.id)
+        .map((d: any) => ({
+          id: d.id,
+          label: DOCUMENT_TIPO_LABEL[d.tipo as keyof typeof DOCUMENT_TIPO_LABEL] ?? d.tipo,
+          nombre_archivo: d.nombre_archivo,
+          url: d.url,
+          ...opcionesEnvioParaTipo(d.tipo),
+        })),
+    ],
   }))
 
   const boundUpdate = updateClientRecord.bind(null, client.id)

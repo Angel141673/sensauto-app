@@ -6,13 +6,16 @@ import {
   sendVehicleDocumentsEmail,
   type SendDocumentsState,
 } from '@/app/dashboard/vehiculos/[id]/documentos/actions'
-import {
-  TIPO_DOCUMENTO_LABEL,
-  TIPOS_MARCADOS_POR_DEFECTO,
-  type VehicleDocumentTipo,
-} from '@/lib/vehicleDocuments'
 
-type Doc = { id: string; tipo_documento: VehicleDocumentTipo; nombre_archivo: string }
+export type SendableDoc = {
+  id: string
+  label: string
+  nombre_archivo: string
+  warning?: string
+  marcadoPorDefecto: boolean
+}
+
+type Doc = SendableDoc
 
 const sendInitialState: SendDocumentsState = { status: 'idle' }
 
@@ -30,7 +33,7 @@ export default function SendDocumentsModal({
   onClose: () => void
 }) {
   const [seleccionados, setSeleccionados] = useState<Set<string>>(
-    new Set(documentos.filter((d) => TIPOS_MARCADOS_POR_DEFECTO.includes(d.tipo_documento)).map((d) => d.id))
+    new Set(documentos.filter((d) => d.marcadoPorDefecto).map((d) => d.id))
   )
   const [email, setEmail] = useState(clienteEmail ?? '')
   const [asunto, setAsunto] = useState(`Documentación de tu vehículo — ${vehiculoLabel}`)
@@ -103,10 +106,8 @@ export default function SendDocumentsModal({
                     checked={seleccionados.has(d.id)}
                     onChange={() => toggle(d.id)}
                   />
-                  {TIPO_DOCUMENTO_LABEL[d.tipo_documento]} — {d.nombre_archivo}
-                  {d.tipo_documento === 'factura_compra' && (
-                    <span className="warning-tag">⚠️ Documento interno — normalmente no se envía al cliente</span>
-                  )}
+                  {d.label} — {d.nombre_archivo}
+                  {d.warning && <span className="warning-tag">{d.warning}</span>}
                 </label>
               </li>
             ))}
