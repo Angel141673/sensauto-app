@@ -20,14 +20,27 @@
   --ok-600: #2f7a4f;
   --pending-600: #8a6d1c;
 
-  /* Acentos por empresa, usados en la gestión documental por vehículo. */
-  --gold-500: #b8912a;
-  --gold-600: #96751e;
+  /* Acentos por empresa: amarillo SENSAUTO, naranja (cobre) SUNAUTO. */
   --yellow-500: #d4b106;
   --yellow-600: #a88b04;
 
+  /* Acento de marca activo — cambia según la empresa seleccionada
+     (ver [data-company] más abajo). Neutro (cobre) sin empresa elegida. */
+  --brand-accent: var(--copper-500);
+  --brand-accent-dark: var(--copper-600);
+
   --radius: 10px;
   --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+:root[data-company='SENSAUTO'] {
+  --brand-accent: var(--yellow-500);
+  --brand-accent-dark: var(--yellow-600);
+}
+
+:root[data-company='SUNAUTO'] {
+  --brand-accent: var(--copper-500);
+  --brand-accent-dark: var(--copper-600);
 }
 
 * {
@@ -150,7 +163,9 @@ button {
   gap: 16px;
   padding: 12px 20px;
   background: var(--graphite-950);
+  border-bottom: 3px solid var(--brand-accent);
   flex-wrap: wrap;
+  transition: border-color 0.2s ease;
 }
 
 .dashboard-header-left,
@@ -165,6 +180,8 @@ button {
   background: var(--white);
   border-radius: 6px;
   padding: 2px 8px;
+  border: 2px solid var(--brand-accent);
+  transition: border-color 0.2s ease;
 }
 
 .dashboard-greeting {
@@ -182,7 +199,7 @@ button {
 }
 
 .signout-btn:hover {
-  border-color: var(--copper-500);
+  border-color: var(--brand-accent);
   color: var(--white);
 }
 
@@ -213,9 +230,10 @@ button {
 }
 
 .company-pill.active {
-  background: var(--copper-500);
-  border-color: var(--copper-500);
+  background: var(--brand-accent);
+  border-color: var(--brand-accent);
   color: var(--white);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .company-switcher-empty {
@@ -282,7 +300,8 @@ button {
   gap: 18px;
   padding: 10px 20px;
   background: var(--graphite-900);
-  border-bottom: 1px solid var(--graphite-800);
+  border-bottom: 2px solid var(--brand-accent);
+  transition: border-color 0.2s ease;
 }
 
 .dashboard-nav a {
@@ -300,7 +319,7 @@ button {
 
 .primary-btn {
   display: inline-block;
-  background: var(--copper-500);
+  background: var(--brand-accent);
   color: var(--white);
   border: none;
   border-radius: 8px;
@@ -308,10 +327,11 @@ button {
   font-weight: 600;
   font-size: 0.9rem;
   text-decoration: none;
+  transition: background-color 0.2s ease;
 }
 
 .primary-btn:hover {
-  background: var(--copper-600);
+  background: var(--brand-accent-dark);
 }
 
 /* ---------- Vehicles: list ---------- */
@@ -795,17 +815,18 @@ button {
   margin-top: 16px;
 }
 
-/* Acento por empresa: dorado SENSAUTO, amarillo SUNAUTO. */
+/* Acento por empresa: amarillo SENSAUTO, naranja (cobre) SUNAUTO — mismo
+   mapeo que el acento de marca global (--brand-accent). */
 .vehicle-documents--sensauto .primary-btn {
-  background: var(--gold-500);
+  background: var(--yellow-500);
 }
 .vehicle-documents--sensauto .primary-btn:hover {
-  background: var(--gold-600);
+  background: var(--yellow-600);
 }
 
 .vehicle-documents--sunauto .primary-btn {
-  background: var(--yellow-500);
+  background: var(--copper-500);
 }
 .vehicle-documents--sunauto .primary-btn:hover {
-  background: var(--yellow-600);
+  background: var(--copper-600);
 }

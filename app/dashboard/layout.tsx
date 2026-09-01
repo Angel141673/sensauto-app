@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import CompanySwitcher from '@/components/CompanySwitcher'
+import CompanyThemeWatcher from '@/components/CompanyThemeWatcher'
 import SignOutButton from '@/components/SignOutButton'
 
 export default async function DashboardLayout({
@@ -39,6 +40,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="dashboard-shell">
+      <CompanyThemeWatcher />
       <header className="dashboard-header">
         <div className="dashboard-header-left">
           <img src="/logo-sensauto.png" alt="SENSAUTO Motor" className="dashboard-logo" />
