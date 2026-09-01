@@ -6,6 +6,7 @@ import {
   deleteVehicleDocument,
 } from '@/app/dashboard/vehiculos/[id]/documentos/actions'
 import { TIPOS_CLAVE, TIPO_DOCUMENTO_LABEL, type VehicleDocumentTipo } from '@/lib/vehicleDocuments'
+import { compressImage } from '@/lib/compressImage'
 
 type Doc = {
   id: string
@@ -122,13 +123,19 @@ export default function VehicleDocumentsSection({
   async function handleSlotUpload(tipo: VehicleDocumentTipo, file: File) {
     setSlotPendiente(tipo)
     setSlotError(null)
-    const formData = new FormData()
-    formData.set('tipo_documento', tipo)
-    formData.set('file', file)
-    const result = await uploadVehicleDocument(vehicleId, companyId, { status: 'idle' }, formData)
-    setSlotPendiente(null)
-    if (result.status === 'error') {
-      setSlotError({ tipo, message: result.message ?? 'No se ha podido subir la foto.' })
+    try {
+      const comprimido = await compressImage(file)
+      const formData = new FormData()
+      formData.set('tipo_documento', tipo)
+      formData.set('file', comprimido)
+      const result = await uploadVehicleDocument(vehicleId, companyId, { status: 'idle' }, formData)
+      if (result.status === 'error') {
+        setSlotError({ tipo, message: result.message ?? 'No se ha podido subir la foto.' })
+      }
+    } catch {
+      setSlotError({ tipo, message: 'No se ha podido subir la foto. Inténtalo de nuevo.' })
+    } finally {
+      setSlotPendiente(null)
     }
   }
 

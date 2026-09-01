@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useFormState } from 'react-dom'
 import { uploadDocument, deleteDocument, type UploadState } from '@/app/dashboard/documentos/actions'
 import { DOCUMENT_TIPO_LABEL, TIPOS_DOCUMENTO_VEHICULO } from '@/lib/documents'
+import { compressImage } from '@/lib/compressImage'
 import SendDocumentsModal, { type SendableDoc } from './SendDocumentsModal'
 
 type Doc = {
@@ -36,10 +37,35 @@ export default function VehicleGeneralDocuments({
 }) {
   const [state, formAction] = useFormState(uploadDocument, uploadInitialState)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [comprimiendo, setComprimiendo] = useState(false)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const puedeEnviar = (estado === 'vendido' || estado === 'entregado') && sendableDocs.length > 0
+
+  // Las fotos de cámara de móvil pesan varios MB — se comprimen aquí antes
+  // de enviar el formulario, para no chocar con el límite de tamaño de las
+  // Server Actions (la subida se quedaría colgada sin avisar).
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setSelectedFile(null)
+      return
+    }
+    setComprimiendo(true)
+    try {
+      const comprimido = await compressImage(file)
+      setSelectedFile(comprimido)
+      if (fileInputRef.current) {
+        const dt = new DataTransfer()
+        dt.items.add(comprimido)
+        fileInputRef.current.files = dt.files
+      }
+    } finally {
+      setComprimiendo(false)
+    }
+  }
 
   return (
     <section className="detail-section">
@@ -64,14 +90,15 @@ export default function VehicleGeneralDocuments({
           ))}
         </select>
         <input
+          ref={fileInputRef}
           type="file"
           name="file"
           accept="image/*,application/pdf"
           required
-          onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+          onChange={handleFileChange}
         />
-        <button type="submit" className="primary-btn" disabled={!selectedFile}>
-          {state.status === 'duplicate' ? 'Sí, subir de todas formas' : 'Subir documento'}
+        <button type="submit" className="primary-btn" disabled={!selectedFile || comprimiendo}>
+          {comprimiendo ? 'Preparando archivo…' : state.status === 'duplicate' ? 'Sí, subir de todas formas' : 'Subir documento'}
         </button>
       </form>
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useFormState } from 'react-dom'
 import { uploadDocument, type UploadState } from './actions'
 import { DOCUMENT_TIPO_LABEL, TIPOS_DOCUMENTO_VEHICULO } from '@/lib/documents'
+import { compressImage } from '@/lib/compressImage'
 
 // "Factura / gasto" no está aquí a propósito: esas facturas se registran
 // desde Gastos (que crea su propio documento vinculado), para que el
@@ -38,6 +39,25 @@ export default function DocumentUploadForm({
 }) {
   const [state, formAction] = useFormState(uploadDocument, initialState)
   const [confirmando, setConfirmando] = useState(false)
+  const [comprimiendo, setComprimiendo] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Las fotos de cámara de móvil pesan varios MB — se comprimen aquí antes
+  // de enviar el formulario, para no chocar con el límite de tamaño de las
+  // Server Actions (la subida se quedaría colgada sin avisar).
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !fileInputRef.current) return
+    setComprimiendo(true)
+    try {
+      const comprimido = await compressImage(file)
+      const dt = new DataTransfer()
+      dt.items.add(comprimido)
+      fileInputRef.current.files = dt.files
+    } finally {
+      setComprimiendo(false)
+    }
+  }
 
   return (
     <form
@@ -104,7 +124,15 @@ export default function DocumentUploadForm({
 
         <div className="form-field" style={{ marginTop: 14 }}>
           <label htmlFor="file">Archivo *</label>
-          <input id="file" name="file" type="file" accept="image/*,application/pdf" required />
+          <input
+            ref={fileInputRef}
+            id="file"
+            name="file"
+            type="file"
+            accept="image/*,application/pdf"
+            required
+            onChange={handleFileChange}
+          />
         </div>
 
         <div className="form-field" style={{ marginTop: 14 }}>
@@ -127,8 +155,8 @@ export default function DocumentUploadForm({
       {state.status === 'success' && <p className="success-note">{state.message}</p>}
 
       {state.status !== 'duplicate' && (
-        <button type="submit" className="primary-btn">
-          Subir documento
+        <button type="submit" className="primary-btn" disabled={comprimiendo}>
+          {comprimiendo ? 'Preparando archivo…' : 'Subir documento'}
         </button>
       )}
     </form>

@@ -11,6 +11,7 @@ import {
   type AnalyzeState,
 } from './actions'
 import type { InvoiceAnalysis } from '@/lib/anthropicInvoice'
+import { compressImage } from '@/lib/compressImage'
 
 type Vehicle = { id: string; marca: string; modelo: string; vin: string | null }
 
@@ -34,6 +35,7 @@ export default function ExpenseForm({
   const router = useRouter()
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [comprimiendo, setComprimiendo] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysis, setAnalysis] = useState<InvoiceAnalysis | null>(null)
   const [analyzeError, setAnalyzeError] = useState<string | null>(null)
@@ -52,6 +54,23 @@ export default function ExpenseForm({
 
   const [saveState, setSaveState] = useState<ExpenseState>(expenseInitialState)
   const [saving, setSaving] = useState(false)
+
+  // Las fotos de cámara de móvil pesan varios MB — se comprimen aquí antes
+  // de usarlas, para no chocar con el límite de tamaño de las Server
+  // Actions (la subida se quedaría colgada sin avisar).
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setSelectedFile(null)
+      return
+    }
+    setComprimiendo(true)
+    try {
+      setSelectedFile(await compressImage(file))
+    } finally {
+      setComprimiendo(false)
+    }
+  }
 
   async function handleAnalizar() {
     if (!selectedFile) {
@@ -160,20 +179,16 @@ export default function ExpenseForm({
           céntimo por factura). La IA propone los datos; tú decides si los usas antes de guardar.
         </p>
         <div className="form-field">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-          />
+          <input type="file" accept="image/*" onChange={handleFileChange} />
         </div>
         <button
           type="button"
           className="secondary-btn"
           style={{ marginTop: 10 }}
           onClick={handleAnalizar}
-          disabled={analyzing || !selectedFile}
+          disabled={analyzing || comprimiendo || !selectedFile}
         >
-          {analyzing ? 'Analizando…' : 'Analizar con IA'}
+          {analyzing ? 'Analizando…' : comprimiendo ? 'Preparando foto…' : 'Analizar con IA'}
         </button>
 
         {analyzeError && <p className="login-error" style={{ marginTop: 10 }}>{analyzeError}</p>}

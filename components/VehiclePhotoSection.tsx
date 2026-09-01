@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useFormState } from 'react-dom'
 import {
   uploadVehiclePhoto,
   deleteVehiclePhoto,
   type UploadPhotoState,
 } from '@/app/dashboard/vehiculos/actions'
+import { compressImage } from '@/lib/compressImage'
 
 const uploadInitialState: UploadPhotoState = { status: 'idle' }
 
@@ -22,10 +23,35 @@ export default function VehiclePhotoSection({
   fotoUrl: string | null
 }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [comprimiendo, setComprimiendo] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const boundUpload = uploadVehiclePhoto.bind(null, vehicleId, companyId, fotoPath)
   const [uploadState, uploadAction] = useFormState(boundUpload, uploadInitialState)
   const boundDelete = deleteVehiclePhoto.bind(null, vehicleId, fotoPath ?? '')
+
+  // Las fotos de cámara de móvil pesan varios MB — se comprimen aquí antes
+  // de que el <form> las envíe, para no chocar con el límite de tamaño de
+  // las Server Actions (la subida se quedaría colgada sin avisar).
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) {
+      setSelectedFile(null)
+      return
+    }
+    setComprimiendo(true)
+    try {
+      const comprimido = await compressImage(file)
+      setSelectedFile(comprimido)
+      if (fileInputRef.current) {
+        const dt = new DataTransfer()
+        dt.items.add(comprimido)
+        fileInputRef.current.files = dt.files
+      }
+    } finally {
+      setComprimiendo(false)
+    }
+  }
 
   return (
     <section className="detail-section vehicle-photo-section">
@@ -43,14 +69,9 @@ export default function VehiclePhotoSection({
       )}
 
       <form action={uploadAction} className="vehicle-photo-upload-form">
-        <input
-          type="file"
-          name="file"
-          accept="image/*"
-          onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-        />
-        <button type="submit" className="secondary-btn" disabled={!selectedFile}>
-          {fotoUrl ? 'Reemplazar foto' : 'Subir foto'}
+        <input ref={fileInputRef} type="file" name="file" accept="image/*" onChange={handleFileChange} />
+        <button type="submit" className="secondary-btn" disabled={!selectedFile || comprimiendo}>
+          {comprimiendo ? 'Preparando foto…' : fotoUrl ? 'Reemplazar foto' : 'Subir foto'}
         </button>
       </form>
 

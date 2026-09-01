@@ -6,6 +6,7 @@ import {
   type AnalyzeVehicleState,
 } from '@/app/dashboard/vehiculos/actions'
 import type { VehiclePurchaseAnalysis } from '@/lib/anthropicInvoice'
+import { compressImage } from '@/lib/compressImage'
 
 const ESTADOS = [
   { value: 'entrada', label: 'Entrada / compra' },
@@ -77,8 +78,12 @@ export default function VehicleForm({
     setAnalysis(null)
 
     try {
+      // Las fotos de cámara de móvil pesan varios MB — se comprimen antes
+      // de enviarlas, para no chocar con el límite de tamaño de las Server
+      // Actions (la subida se quedaría colgada sin avisar).
+      const comprimido = await compressImage(selectedFile)
       const formData = new FormData()
-      formData.set('file', selectedFile)
+      formData.set('file', comprimido)
 
       const result = await analyzeVehiclePurchaseWithAI(analyzeInitialState, formData)
 
