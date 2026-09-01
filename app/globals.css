@@ -807,6 +807,125 @@ button {
   margin-top: 2px;
 }
 
+.ficha-tecnica-heading {
+  font-size: 0.85rem;
+  color: var(--graphite-600);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 18px 0 8px;
+}
+
+.ficha-tecnica-row {
+  margin-bottom: 14px;
+}
+
+.ficha-tecnica-row-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--graphite-600);
+  margin-bottom: 6px;
+}
+
+.ficha-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.ficha-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: var(--radius);
+  padding: 14px 10px;
+  min-height: 110px;
+  text-align: center;
+}
+
+.ficha-slot-empty {
+  border: 2px dashed var(--steel-300);
+  background: var(--steel-100);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ficha-slot-empty:hover {
+  border-color: var(--brand-accent);
+  background: var(--white);
+}
+
+.ficha-slot-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ficha-slot-icon {
+  font-size: 1.4rem;
+  color: var(--graphite-600);
+  line-height: 1;
+}
+
+.ficha-slot-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--graphite-900);
+}
+
+.ficha-slot-hint {
+  font-size: 0.72rem;
+  color: var(--graphite-600);
+}
+
+.ficha-slot-error {
+  font-size: 0.7rem;
+  color: #b3261e;
+}
+
+.ficha-slot-filled {
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  padding: 10px;
+}
+
+.ficha-slot-thumb {
+  width: 100%;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--steel-100);
+}
+
+.ficha-slot-thumb-file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+}
+
+.ficha-slot-actions {
+  display: flex;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+
+.ficha-slot-actions a,
+.ficha-slot-actions button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--brand-accent-dark);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .checklist {
   list-style: none;
   padding: 0;

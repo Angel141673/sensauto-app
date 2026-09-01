@@ -28,6 +28,91 @@ type Doc = {
 
 const uploadInitialState: UploadDocState = { status: 'idle' }
 
+const FICHA_TECNICA_ROWS: { titulo: string; slots: { tipo: VehicleDocumentTipo; cara: string }[] }[] = [
+  {
+    titulo: 'País de origen',
+    slots: [
+      { tipo: 'ficha_tecnica_origen_a', cara: 'Cara A' },
+      { tipo: 'ficha_tecnica_origen_b', cara: 'Cara B' },
+    ],
+  },
+  {
+    titulo: 'España',
+    slots: [
+      { tipo: 'ficha_tecnica_espanola_a', cara: 'Cara A' },
+      { tipo: 'ficha_tecnica_espanola_b', cara: 'Cara B' },
+    ],
+  },
+]
+
+const FICHA_TECNICA_TIPOS = FICHA_TECNICA_ROWS.flatMap((row) => row.slots.map((s) => s.tipo))
+const OTROS_TIPOS = TIPOS_DOCUMENTO.filter((t) => !FICHA_TECNICA_TIPOS.includes(t))
+
+function esImagen(nombreArchivo: string) {
+  return /\.(jpe?g|png|webp|gif|heic)$/i.test(nombreArchivo)
+}
+
+function FichaTecnicaSlot({
+  tipo,
+  cara,
+  doc,
+  vehicleId,
+  onUpload,
+  pendiente,
+  error,
+}: {
+  tipo: VehicleDocumentTipo
+  cara: string
+  doc: Doc | undefined
+  vehicleId: string
+  onUpload: (tipo: VehicleDocumentTipo, file: File) => void
+  pendiente: boolean
+  error: string | null
+}) {
+  if (doc) {
+    return (
+      <div className="ficha-slot ficha-slot-filled">
+        {esImagen(doc.nombre_archivo) && doc.url ? (
+          <img src={doc.url} alt={cara} className="ficha-slot-thumb" />
+        ) : (
+          <div className="ficha-slot-thumb ficha-slot-thumb-file">📄</div>
+        )}
+        <span className="ficha-slot-label">{cara}</span>
+        <div className="ficha-slot-actions">
+          {doc.url && (
+            <a href={doc.url} target="_blank" rel="noreferrer">
+              Ver
+            </a>
+          )}
+          <form action={deleteVehicleDocument.bind(null, doc.id, doc.storage_path, vehicleId)}>
+            <button type="submit">Quitar</button>
+          </form>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <label className="ficha-slot ficha-slot-empty">
+      <input
+        type="file"
+        accept="image/*,application/pdf"
+        className="ficha-slot-input"
+        disabled={pendiente}
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) onUpload(tipo, file)
+          e.target.value = ''
+        }}
+      />
+      <span className="ficha-slot-icon">{pendiente ? '…' : '+'}</span>
+      <span className="ficha-slot-label">{cara}</span>
+      <span className="ficha-slot-hint">{pendiente ? 'Subiendo…' : 'Subir foto'}</span>
+      {error && <span className="ficha-slot-error">{error}</span>}
+    </label>
+  )
+}
+
 export default function VehicleDocumentsSection({
   vehicleId,
   companyId,
@@ -45,9 +130,11 @@ export default function VehicleDocumentsSection({
   documentos: Doc[]
   clienteEmail: string | null
 }) {
-  const [tipoSeleccionado, setTipoSeleccionado] = useState<VehicleDocumentTipo>('contrato_compraventa')
+  const [tipoSeleccionado, setTipoSeleccionado] = useState<VehicleDocumentTipo>(OTROS_TIPOS[0])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [slotPendiente, setSlotPendiente] = useState<VehicleDocumentTipo | null>(null)
+  const [slotError, setSlotError] = useState<{ tipo: VehicleDocumentTipo; message: string } | null>(null)
 
   const boundUpload = uploadVehicleDocument.bind(null, vehicleId, companyId)
   const [uploadState, uploadAction] = useFormState(boundUpload, uploadInitialState)
@@ -60,6 +147,21 @@ export default function VehicleDocumentsSection({
 
   const acentoEmpresa = companyCode === 'SUNAUTO' ? 'vehicle-documents--sunauto' : 'vehicle-documents--sensauto'
 
+  const otrosDocumentos = documentos.filter((d) => !FICHA_TECNICA_TIPOS.includes(d.tipo_documento))
+
+  async function handleSlotUpload(tipo: VehicleDocumentTipo, file: File) {
+    setSlotPendiente(tipo)
+    setSlotError(null)
+    const formData = new FormData()
+    formData.set('tipo_documento', tipo)
+    formData.set('file', file)
+    const result = await uploadVehicleDocument(vehicleId, companyId, uploadInitialState, formData)
+    setSlotPendiente(null)
+    if (result.status === 'error') {
+      setSlotError({ tipo, message: result.message ?? 'No se ha podido subir la foto.' })
+    }
+  }
+
   return (
     <section className={`detail-section ${acentoEmpresa}`}>
       <div className="vehicles-header">
@@ -71,13 +173,35 @@ export default function VehicleDocumentsSection({
         )}
       </div>
 
+      <h3 className="ficha-tecnica-heading">Ficha técnica</h3>
+      {FICHA_TECNICA_ROWS.map((row) => (
+        <div key={row.titulo} className="ficha-tecnica-row">
+          <span className="ficha-tecnica-row-label">{row.titulo}</span>
+          <div className="ficha-slot-grid">
+            {row.slots.map((slot) => (
+              <FichaTecnicaSlot
+                key={slot.tipo}
+                tipo={slot.tipo}
+                cara={slot.cara}
+                doc={documentos.find((d) => d.tipo_documento === slot.tipo)}
+                vehicleId={vehicleId}
+                onUpload={handleSlotUpload}
+                pendiente={slotPendiente === slot.tipo}
+                error={slotError?.tipo === slot.tipo ? slotError.message : null}
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <h3 className="ficha-tecnica-heading">Otros documentos</h3>
       <form action={uploadAction} className="link-vehicle-form" style={{ marginBottom: 16 }}>
         <select
           name="tipo_documento"
           value={tipoSeleccionado}
           onChange={(e) => setTipoSeleccionado(e.target.value as VehicleDocumentTipo)}
         >
-          {TIPOS_DOCUMENTO.map((t) => (
+          {OTROS_TIPOS.map((t) => (
             <option key={t} value={t}>
               {TIPO_DOCUMENTO_LABEL[t]}
             </option>
@@ -97,11 +221,11 @@ export default function VehicleDocumentsSection({
       {uploadState.status === 'error' && <p className="login-error">{uploadState.message}</p>}
       {uploadState.status === 'success' && <p className="success-note">{uploadState.message}</p>}
 
-      {documentos.length === 0 ? (
-        <p className="empty-state">Todavía no hay documentos de este vehículo.</p>
+      {otrosDocumentos.length === 0 ? (
+        <p className="empty-state">Todavía no hay otros documentos de este vehículo.</p>
       ) : (
         <ul className="pending-list">
-          {documentos.map((doc) => (
+          {otrosDocumentos.map((doc) => (
             <li key={doc.id} className="vehicle-card">
               <div className="vehicle-card-main">
                 <strong>{TIPO_DOCUMENTO_LABEL[doc.tipo_documento]}</strong>
