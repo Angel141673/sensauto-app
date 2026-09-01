@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import CompanySwitcher from '@/components/CompanySwitcher'
 import CompanyThemeWatcher from '@/components/CompanyThemeWatcher'
+import DashboardNav from '@/components/DashboardNav'
 import SignOutButton from '@/components/SignOutButton'
 
 export default async function DashboardLayout({
@@ -52,14 +52,7 @@ export default async function DashboardLayout({
         </div>
       </header>
 
-      <nav className="dashboard-nav">
-        <Link href="/dashboard">Inicio</Link>
-        <Link href="/dashboard/vehiculos">Vehículos</Link>
-        <Link href="/dashboard/clientes">Clientes</Link>
-        <Link href="/dashboard/documentos">Documentos</Link>
-        <Link href="/dashboard/gastos">Gastos</Link>
-        <Link href="/dashboard/informes">Informes</Link>
-      </nav>
+      <DashboardNav />
 
       <main className="dashboard-main">{children}</main>
     </div>
