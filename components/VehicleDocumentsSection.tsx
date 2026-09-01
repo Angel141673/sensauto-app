@@ -82,7 +82,7 @@ function FichaTecnicaSlot({
     <label className="ficha-slot ficha-slot-empty">
       <input
         type="file"
-        accept="image/*,application/pdf"
+        accept="image/*"
         className="ficha-slot-input"
         disabled={pendiente}
         onChange={(e) => {

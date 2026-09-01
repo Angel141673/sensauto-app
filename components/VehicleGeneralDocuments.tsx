@@ -66,6 +66,7 @@ export default function VehicleGeneralDocuments({
         <input
           type="file"
           name="file"
+          accept="image/*,application/pdf"
           required
           onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
         />
