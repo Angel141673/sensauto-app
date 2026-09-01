@@ -7,6 +7,7 @@ import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSe
 import { updateClientRecord, linkVehicleToClient, updateOperationEstado } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
 import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
+import { withDownload } from '@/lib/downloadUrl'
 
 const ESTADO_OPERACION_LABEL: Record<string, string> = {
   contacto: 'Contacto',
@@ -70,7 +71,7 @@ export default async function ClienteDetallePage({
     (documents ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('documentos')
-        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+        .createSignedUrl(doc.storage_path, 60 * 5)
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -101,7 +102,7 @@ export default async function ClienteDetallePage({
     (allVehicleDocuments ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('vehicle-documents')
-        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+        .createSignedUrl(doc.storage_path, 60 * 5)
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -120,7 +121,7 @@ export default async function ClienteDetallePage({
     (allVehicleOtherDocs ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('documentos')
-        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+        .createSignedUrl(doc.storage_path, 60 * 5)
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -277,6 +278,12 @@ export default async function ClienteDetallePage({
                 )}
                 {' — '}
                 {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                {doc.url && (
+                  <>
+                    {' · '}
+                    <a href={withDownload(doc.url, doc.nombre_archivo)}>Descargar</a>
+                  </>
+                )}
               </li>
             ))}
           </ul>

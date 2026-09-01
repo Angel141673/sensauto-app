@@ -4,6 +4,7 @@ import DocumentUploadForm from './UploadForm'
 import { deleteDocument } from './actions'
 import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
 import { DOCUMENT_TIPO_LABEL as TIPO_LABEL, type DocumentTipo } from '@/lib/documents'
+import { withDownload } from '@/lib/downloadUrl'
 
 export default async function DocumentosPage({
   searchParams,
@@ -66,7 +67,7 @@ export default async function DocumentosPage({
     (documents ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('documentos')
-        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+        .createSignedUrl(doc.storage_path, 60 * 5)
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -119,9 +120,14 @@ export default async function DocumentosPage({
             </div>
             <div className="vehicle-card-side">
               {doc.url && (
-                <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
-                  Ver / descargar
-                </a>
+                <>
+                  <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
+                    Ver
+                  </a>
+                  <a href={withDownload(doc.url, doc.nombre_archivo)} className="secondary-btn">
+                    Descargar
+                  </a>
+                </>
               )}
               <form action={deleteDocument.bind(null, doc.id, doc.storage_path)}>
                 <button type="submit" className="secondary-btn">

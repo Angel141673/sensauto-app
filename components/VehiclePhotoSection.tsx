@@ -8,6 +8,7 @@ import {
   type UploadPhotoState,
 } from '@/app/dashboard/vehiculos/actions'
 import { compressImage } from '@/lib/compressImage'
+import { withDownload } from '@/lib/downloadUrl'
 
 const uploadInitialState: UploadPhotoState = { status: 'idle' }
 
@@ -58,11 +59,19 @@ export default function VehiclePhotoSection({
       {fotoUrl ? (
         <div className="vehicle-photo-current">
           <img src={fotoUrl} alt="Foto del vehículo" className="vehicle-photo-img" />
-          <form action={boundDelete}>
-            <button type="submit" className="secondary-btn">
-              Quitar foto
-            </button>
-          </form>
+          <div className="modal-actions">
+            <a href={fotoUrl} target="_blank" rel="noreferrer" className="secondary-btn">
+              Ver
+            </a>
+            <a href={withDownload(fotoUrl, 'foto-vehiculo.jpg')} className="secondary-btn">
+              Descargar
+            </a>
+            <form action={boundDelete}>
+              <button type="submit" className="secondary-btn">
+                Quitar foto
+              </button>
+            </form>
+          </div>
         </div>
       ) : (
         <p className="empty-state">Sin foto todavía.</p>

@@ -7,6 +7,7 @@ import {
 } from '@/app/dashboard/vehiculos/[id]/documentos/actions'
 import { TIPOS_CLAVE, TIPO_DOCUMENTO_LABEL, type VehicleDocumentTipo } from '@/lib/vehicleDocuments'
 import { compressImage } from '@/lib/compressImage'
+import { withDownload } from '@/lib/downloadUrl'
 
 type Doc = {
   id: string
@@ -67,9 +68,12 @@ function FichaTecnicaSlot({
         <span className="ficha-slot-label">{cara}</span>
         <div className="ficha-slot-actions">
           {doc.url && (
-            <a href={doc.url} target="_blank" rel="noreferrer">
-              Ver
-            </a>
+            <>
+              <a href={doc.url} target="_blank" rel="noreferrer">
+                Ver
+              </a>
+              <a href={withDownload(doc.url, doc.nombre_archivo)}>Descargar</a>
+            </>
           )}
           <form action={deleteVehicleDocument.bind(null, doc.id, doc.storage_path, vehicleId)}>
             <button type="submit">Quitar</button>

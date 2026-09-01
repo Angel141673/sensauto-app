@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import SendDocumentsModal, { type SendableDoc } from './SendDocumentsModal'
+import { withDownload } from '@/lib/downloadUrl'
 
 type Doc = SendableDoc & { url: string | null }
 
@@ -46,6 +47,12 @@ export default function ClientVehicleDocumentsSection({
                   </a>
                 ) : (
                   `${doc.label} — ${doc.nombre_archivo}`
+                )}
+                {doc.url && (
+                  <>
+                    {' · '}
+                    <a href={withDownload(doc.url, doc.nombre_archivo)}>Descargar</a>
+                  </>
                 )}
               </li>
             ))}

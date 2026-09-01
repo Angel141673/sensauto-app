@@ -72,7 +72,9 @@ export default async function VehiculoDetallePage({
     .order('created_at', { ascending: false })
 
   const { data: fotoSigned } = vehicle.foto_path
-    ? await supabase.storage.from('vehicle-photos').createSignedUrl(vehicle.foto_path, 60 * 5)
+    ? await supabase.storage
+        .from('vehicle-photos')
+        .createSignedUrl(vehicle.foto_path, 60 * 5)
     : { data: null }
 
   const { data: allClients } = await supabase
@@ -90,7 +92,7 @@ export default async function VehiculoDetallePage({
     (vehicleDocuments ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('vehicle-documents')
-        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+        .createSignedUrl(doc.storage_path, 60 * 5)
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
@@ -110,7 +112,7 @@ export default async function VehiculoDetallePage({
     (documents ?? []).map(async (doc: any) => {
       const { data } = await supabase.storage
         .from('documentos')
-        .createSignedUrl(doc.storage_path, 60 * 5, { download: doc.nombre_archivo })
+        .createSignedUrl(doc.storage_path, 60 * 5)
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )

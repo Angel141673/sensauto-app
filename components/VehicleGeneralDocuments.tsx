@@ -5,6 +5,7 @@ import { useFormState } from 'react-dom'
 import { uploadDocument, deleteDocument, type UploadState } from '@/app/dashboard/documentos/actions'
 import { DOCUMENT_TIPO_LABEL, TIPOS_DOCUMENTO_VEHICULO } from '@/lib/documents'
 import { compressImage } from '@/lib/compressImage'
+import { withDownload } from '@/lib/downloadUrl'
 import SendDocumentsModal, { type SendableDoc } from './SendDocumentsModal'
 
 type Doc = {
@@ -124,9 +125,14 @@ export default function VehicleGeneralDocuments({
               </div>
               <div className="vehicle-card-side">
                 {doc.url && (
-                  <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
-                    Ver / descargar
-                  </a>
+                  <>
+                    <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
+                      Ver
+                    </a>
+                    <a href={withDownload(doc.url, doc.nombre_archivo)} className="secondary-btn">
+                      Descargar
+                    </a>
+                  </>
                 )}
                 <form action={deleteDocument.bind(null, doc.id, doc.storage_path)}>
                   <button type="submit" className="secondary-btn">
