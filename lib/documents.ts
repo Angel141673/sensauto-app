@@ -12,6 +12,7 @@ export type DocumentTipo =
   | 'tramite'
   | 'otro'
   | 'presupuesto'
+  | 'dni'
 
 export const DOCUMENT_TIPO_LABEL: Record<DocumentTipo, string> = {
   vehiculo: 'Documentación del vehículo',
@@ -23,6 +24,7 @@ export const DOCUMENT_TIPO_LABEL: Record<DocumentTipo, string> = {
   tramite: 'Trámite',
   otro: 'Otro',
   presupuesto: 'Presupuesto / factura proforma',
+  dni: 'DNI / NIF',
 }
 
 // Tipos elegibles al subir un documento vinculado a un vehículo desde su

@@ -36,7 +36,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   const { data: client } = await supabase
     .from('clients')
-    .select('nombre, dni_nif, direccion, telefono, email')
+    .select('nombre, dni_nif, direccion, codigo_postal, provincia, telefono, email')
     .eq('id', clientId)
     .single()
 

@@ -35,6 +35,8 @@ export async function createQuickClient(
       email: (formData.get('email') as string) || null,
       dni_nif: (formData.get('dni_nif') as string) || null,
       direccion: (formData.get('direccion') as string) || null,
+      codigo_postal: (formData.get('codigo_postal') as string) || null,
+      provincia: (formData.get('provincia') as string) || null,
       created_by: user.id,
     })
     .select('id, nombre')

@@ -124,8 +124,16 @@ export default function GenerateProformaModal({
               <input id="dni_nif" name="dni_nif" />
             </div>
             <div className="form-field">
-              <label htmlFor="direccion">Dirección</label>
+              <label htmlFor="direccion">Calle</label>
               <input id="direccion" name="direccion" />
+            </div>
+            <div className="form-field">
+              <label htmlFor="codigo_postal">Código postal</label>
+              <input id="codigo_postal" name="codigo_postal" />
+            </div>
+            <div className="form-field">
+              <label htmlFor="provincia">Provincia</label>
+              <input id="provincia" name="provincia" />
             </div>
             {quickClientState.status === 'error' && (
               <p className="login-error">{quickClientState.message}</p>

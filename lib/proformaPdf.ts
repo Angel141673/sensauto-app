@@ -49,6 +49,8 @@ export type ProformaClient = {
   nombre: string
   dni_nif: string | null
   direccion: string | null
+  codigo_postal: string | null
+  provincia: string | null
   telefono: string | null
   email: string | null
 }
@@ -122,6 +124,8 @@ export async function buildProformaPdf(args: {
   text(client.nombre, { size: 11, bold: true })
   if (client.dni_nif) text(`DNI/NIF: ${client.dni_nif}`, { size: 10 })
   if (client.direccion) text(client.direccion, { size: 10 })
+  const clientLocalidad = [client.codigo_postal, client.provincia].filter(Boolean).join(' ')
+  if (clientLocalidad) text(clientLocalidad, { size: 10 })
   const clientContact = [client.telefono, client.email].filter(Boolean).join(' · ')
   if (clientContact) text(clientContact, { size: 10 })
   y -= 12

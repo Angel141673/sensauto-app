@@ -4,6 +4,7 @@ import Link from 'next/link'
 import ClientForm from '@/components/ClientForm'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSection'
+import ClientDniSection from '@/components/ClientDniSection'
 import { updateClientRecord, linkVehicleToClient, updateOperationEstado } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
 import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
@@ -75,6 +76,18 @@ export default async function ClienteDetallePage({
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
+
+  const dniDocs = documentsWithUrls.filter((d: any) => d.tipo === 'dni')
+  const otherDocs = documentsWithUrls.filter((d: any) => d.tipo !== 'dni')
+
+  const { data: memberships } = await supabase
+    .from('user_companies')
+    .select('company:companies(id, code, name)')
+    .eq('user_id', user.id)
+  const companies = (memberships ?? []).map((m: any) => m.company).filter(Boolean)
+  const primerVehiculoCompanyCode = (operations?.[0] as any)?.vehicle?.company?.code
+  const defaultCompanyId =
+    companies.find((c: any) => c.code === primerVehiculoCompanyCode)?.id ?? companies[0]?.id ?? ''
 
   const { data: signatures } = await supabase
     .from('signatures')
@@ -178,7 +191,9 @@ export default async function ClienteDetallePage({
           <div><dt>Teléfono</dt><dd>{client.telefono || '—'}</dd></div>
           <div><dt>Email</dt><dd>{client.email || '—'}</dd></div>
           <div><dt>DNI / NIF</dt><dd>{client.dni_nif || '—'}</dd></div>
-          <div><dt>Dirección</dt><dd>{client.direccion || '—'}</dd></div>
+          <div><dt>Calle</dt><dd>{client.direccion || '—'}</dd></div>
+          <div><dt>Código postal</dt><dd>{client.codigo_postal || '—'}</dd></div>
+          <div><dt>Provincia</dt><dd>{client.provincia || '—'}</dd></div>
         </dl>
       </section>
 
@@ -260,16 +275,23 @@ export default async function ClienteDetallePage({
         </div>
       </section>
 
+      <ClientDniSection
+        clientId={client.id}
+        companies={companies}
+        defaultCompanyId={defaultCompanyId}
+        documentos={dniDocs}
+      />
+
       <ClientVehicleDocumentsSection vehiculos={vehiculosConDocs} clienteEmail={client.email} />
 
       <section className="detail-section">
         <h2>Documentos</h2>
-        {documentsWithUrls.length === 0 && (
+        {otherDocs.length === 0 && (
           <p className="empty-state">Sin documentos todavía.</p>
         )}
-        {documentsWithUrls.length > 0 && (
+        {otherDocs.length > 0 && (
           <ul className="pending-list">
-            {documentsWithUrls.map((doc: any) => (
+            {otherDocs.map((doc: any) => (
               <li key={doc.id}>
                 {doc.url ? (
                   <a href={doc.url} target="_blank" rel="noreferrer">{doc.nombre_archivo}</a>
