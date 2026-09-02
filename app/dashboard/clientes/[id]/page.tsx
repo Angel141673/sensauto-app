@@ -197,6 +197,13 @@ export default async function ClienteDetallePage({
         </dl>
       </section>
 
+      <ClientDniSection
+        clientId={client.id}
+        companies={companies}
+        defaultCompanyId={defaultCompanyId}
+        documentos={dniDocs}
+      />
+
       {client.notas && (
         <section className="detail-section">
           <h2>Notas</h2>
@@ -274,13 +281,6 @@ export default async function ClienteDetallePage({
           )}
         </div>
       </section>
-
-      <ClientDniSection
-        clientId={client.id}
-        companies={companies}
-        defaultCompanyId={defaultCompanyId}
-        documentos={dniDocs}
-      />
 
       <ClientVehicleDocumentsSection vehiculos={vehiculosConDocs} clienteEmail={client.email} />
 
