@@ -5,7 +5,7 @@ import ClientForm from '@/components/ClientForm'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSection'
 import ClientDniSection from '@/components/ClientDniSection'
-import { updateClientRecord, linkVehicleToClient, updateOperationEstado } from '../actions'
+import { updateClientRecord, linkVehicleToClient, updateOperationEstado, unlinkVehicleFromClient } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
 import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
 import { withDownload } from '@/lib/downloadUrl'
@@ -247,6 +247,12 @@ export default async function ClienteDetallePage({
                 <Link href={`/dashboard/firmas/${op.id}`} className="secondary-btn">
                   Firmar contrato
                 </Link>
+                <form action={unlinkVehicleFromClient.bind(null, op.id)}>
+                  <input type="hidden" name="client_id" value={client.id} />
+                  <button type="submit" className="secondary-btn">
+                    Quitar vínculo
+                  </button>
+                </form>
               </li>
             ))}
           </ul>

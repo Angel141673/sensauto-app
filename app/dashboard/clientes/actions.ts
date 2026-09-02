@@ -94,6 +94,32 @@ export async function linkVehicleToClient(clientId: string, formData: FormData) 
   revalidatePath('/dashboard/vehiculos')
 }
 
+// Quita el vínculo cliente-vehículo (borra la operación), no el vehículo
+// ni sus documentos — solo lo saca de la lista de "Vehículos vinculados"
+// de este cliente. Si ya tiene un contrato firmado asociado, la base de
+// datos rechaza el borrado (no se pierde el historial de firma).
+export async function unlinkVehicleFromClient(operationId: string, formData: FormData) {
+  const supabase = await createSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const clientId = String(formData.get('client_id') ?? '')
+
+  const { error } = await supabase.from('operations').delete().eq('id', operationId)
+
+  if (error) {
+    if (error.code === '23503') {
+      throw new Error('No se puede quitar: este vehículo tiene un contrato firmado vinculado.')
+    }
+    throw new Error('No se ha podido quitar el vínculo. Inténtalo de nuevo.')
+  }
+
+  revalidatePath(`/dashboard/clientes/${clientId}`)
+  revalidatePath('/dashboard/vehiculos')
+}
+
 export async function updateOperationEstado(operationId: string, formData: FormData) {
   const supabase = await createSupabaseClient()
   const {
