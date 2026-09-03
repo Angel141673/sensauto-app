@@ -185,6 +185,63 @@ export async function uploadVehiclePhoto(
   return { status: 'idle' }
 }
 
+// Elimina el vehículo entero (para altas hechas por error) junto con todo
+// lo que cuelga de él: gastos, documentos generales, ficha técnica y su
+// propia foto. Las operaciones (vínculos con clientes) se borran primero
+// — si alguna tiene ya un contrato firmado, la base de datos rechaza el
+// borrado ahí mismo y no se toca nada más, protegiendo el historial.
+export async function deleteVehicle(vehicleId: string) {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { error: opsError } = await supabase.from('operations').delete().eq('vehicle_id', vehicleId)
+  if (opsError) {
+    if (opsError.code === '23503') {
+      throw new Error(
+        'No se puede eliminar: este vehículo tiene un contrato firmado. Quita antes el vínculo desde la ficha del cliente.'
+      )
+    }
+    throw new Error('No se ha podido eliminar el vehículo. Inténtalo de nuevo.')
+  }
+
+  await supabase.from('expenses').delete().eq('vehicle_id', vehicleId)
+
+  const { data: vehicleDocs } = await supabase
+    .from('vehicle_documents')
+    .select('storage_path')
+    .eq('vehicle_id', vehicleId)
+  if (vehicleDocs?.length) {
+    await supabase.storage.from('vehicle-documents').remove(vehicleDocs.map((d) => d.storage_path))
+  }
+
+  const { data: generalDocs } = await supabase.from('documents').select('storage_path').eq('vehicle_id', vehicleId)
+  if (generalDocs?.length) {
+    await supabase.storage.from('documentos').remove(generalDocs.map((d) => d.storage_path))
+  }
+  const { error: docsError } = await supabase.from('documents').delete().eq('vehicle_id', vehicleId)
+  if (docsError) {
+    throw new Error(
+      'No se puede eliminar: alguno de sus documentos está vinculado a una firma. Revísalo antes de continuar.'
+    )
+  }
+
+  const { data: vehicle } = await supabase.from('vehicles').select('foto_path').eq('id', vehicleId).single()
+  if (vehicle?.foto_path) {
+    await supabase.storage.from('vehicle-photos').remove([vehicle.foto_path])
+  }
+
+  const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId)
+  if (error) {
+    throw new Error('No se ha podido eliminar el vehículo. Inténtalo de nuevo.')
+  }
+
+  revalidatePath('/dashboard/vehiculos')
+  redirect('/dashboard/vehiculos')
+}
+
 export async function deleteVehiclePhoto(vehicleId: string, fotoPath: string) {
   const supabase = await createClient()
   const {
