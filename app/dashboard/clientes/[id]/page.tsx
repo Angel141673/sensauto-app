@@ -5,6 +5,7 @@ import ClientForm from '@/components/ClientForm'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSection'
 import ClientDniSection from '@/components/ClientDniSection'
+import GenerateContractButton from '@/components/GenerateContractButton'
 import { updateClientRecord, linkVehicleToClient, updateOperationEstado, unlinkVehicleFromClient } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
 import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
@@ -46,7 +47,9 @@ export default async function ClienteDetallePage({
 
   const { data: operations } = await supabase
     .from('operations')
-    .select('id, estado, created_at, vehicle:vehicles(id, marca, modelo, vin, estado, company:companies(code))')
+    .select(
+      'id, estado, created_at, vehicle:vehicles(id, marca, modelo, vin, estado, precio_venta_previsto, company:companies(code))'
+    )
     .eq('client_id', client.id)
     .order('created_at', { ascending: false })
 
@@ -247,6 +250,12 @@ export default async function ClienteDetallePage({
                 <Link href={`/dashboard/firmas/${op.id}`} className="secondary-btn">
                   Firmar contrato
                 </Link>
+                <GenerateContractButton
+                  vehicleId={op.vehicle.id}
+                  vehiculoLabel={`${op.vehicle.marca} ${op.vehicle.modelo}`}
+                  clients={[{ id: client.id, nombre: client.nombre }]}
+                  precioSugerido={op.vehicle.precio_venta_previsto}
+                />
                 <form action={unlinkVehicleFromClient.bind(null, op.id)}>
                   <input type="hidden" name="client_id" value={client.id} />
                   <button type="submit" className="secondary-btn">

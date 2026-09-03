@@ -222,9 +222,9 @@ button {
 
 .company-pill {
   display: inline-block;
-  border: 1px solid var(--graphite-600);
-  background: transparent;
-  color: var(--steel-300);
+  border: 1px solid var(--steel-100);
+  background: var(--white);
+  color: var(--graphite-950);
   padding: 6px 14px;
   border-radius: 999px;
   font-size: 0.8rem;
