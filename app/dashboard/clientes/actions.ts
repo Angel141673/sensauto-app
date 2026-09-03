@@ -63,6 +63,46 @@ export async function updateClientRecord(clientId: string, formData: FormData) {
   redirect(`/dashboard/clientes/${clientId}`)
 }
 
+export type QuickClientState = {
+  status: 'idle' | 'error'
+  message?: string
+  client?: { id: string; nombre: string }
+}
+
+// Alta rápida de cliente desde un modal de generación de documentos
+// (presupuesto, contrato...) — a diferencia de createClientRecord no
+// redirige, para poder seleccionar el cliente recién creado sin salir
+// de la ficha del vehículo.
+export async function createQuickClient(
+  prevState: QuickClientState,
+  formData: FormData
+): Promise<QuickClientState> {
+  const supabase = await createSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const nombre = String(formData.get('nombre') ?? '').trim()
+  if (!nombre) {
+    return { status: 'error', message: 'El nombre es obligatorio.' }
+  }
+
+  const fields = readClientFields(formData)
+
+  const { data, error } = await supabase
+    .from('clients')
+    .insert({ ...fields, nombre, created_by: user.id })
+    .select('id, nombre')
+    .single()
+
+  if (error) {
+    return { status: 'error', message: 'No se ha podido guardar el cliente. Inténtalo de nuevo.' }
+  }
+
+  return { status: 'idle', client: data }
+}
+
 export async function linkVehicleToClient(clientId: string, formData: FormData) {
   const supabase = await createSupabaseClient()
   const {

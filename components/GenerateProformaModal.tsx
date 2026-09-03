@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useFormState } from 'react-dom'
-import { createQuickClient, type QuickClientState } from '@/app/dashboard/vehiculos/[id]/presupuesto/actions'
+import { createQuickClient, type QuickClientState } from '@/app/dashboard/clientes/actions'
 
 type Client = { id: string; nombre: string }
 
