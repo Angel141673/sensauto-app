@@ -1,10 +1,6 @@
-import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage } from 'pdf-lib'
+import { PDFDocument, rgb, StandardFonts, type PDFFont } from 'pdf-lib'
 
-// Generación imperativa (sin React) a propósito: @react-pdf/renderer choca
-// con la copia de React que Next.js App Router usa internamente para sus
-// propios archivos server ("Minified React error #31" — dos instancias de
-// React distintas), un problema conocido sin solución limpia mientras el
-// proyecto siga en React 18. pdf-lib no depende de React, así que lo evita.
+// Misma técnica que proformaPdf.ts/contractPdf.ts (pdf-lib, sin React).
 
 const PAGE_WIDTH = 595.28 // A4 en puntos
 const PAGE_HEIGHT = 841.89
@@ -37,15 +33,15 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
   return lines
 }
 
-export type ProformaCompany = {
-  name: string
+export type FacturaCompany = {
+  razonSocial: string
   cif: string | null
   direccion: string | null
   telefono: string | null
   email: string | null
 }
 
-export type ProformaClient = {
+export type FacturaClient = {
   nombre: string
   dni_nif: string | null
   direccion: string | null
@@ -55,26 +51,23 @@ export type ProformaClient = {
   email: string | null
 }
 
-export type ProformaVehicle = {
+export type FacturaVehicle = {
   marca: string
   modelo: string
   matricula: string | null
   vin: string | null
   anio: number | null
   km: number | null
-  motor: string | null
-  color: string | null
-  combustible: string | null
-  transmision: string | null
 }
 
-export async function buildProformaPdf(args: {
-  company: ProformaCompany
-  client: ProformaClient
-  vehicle: ProformaVehicle
+export async function buildFacturaVentaPdf(args: {
+  company: FacturaCompany
+  client: FacturaClient
+  vehicle: FacturaVehicle
   precio: number
+  numeroFactura: string
 }): Promise<Buffer> {
-  const { company, client, vehicle, precio } = args
+  const { company, client, vehicle, precio, numeroFactura } = args
   const fecha = new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })
 
   const pdfDoc = await PDFDocument.create()
@@ -100,24 +93,19 @@ export async function buildProformaPdf(args: {
   }
 
   // Membrete
-  text(company.name, { size: 16, bold: true, gap: 2 })
+  text(company.razonSocial, { size: 16, bold: true, gap: 2 })
   if (company.cif) text(`CIF: ${company.cif}`, { size: 9, color: GRAY })
   if (company.direccion) text(company.direccion, { size: 9, color: GRAY })
   const companyContact = [company.telefono, company.email].filter(Boolean).join(' · ')
   if (companyContact) text(companyContact, { size: 9, color: GRAY })
 
   y -= 6
-  page.drawLine({
-    start: { x: MARGIN, y },
-    end: { x: PAGE_WIDTH - MARGIN, y },
-    thickness: 2,
-    color: COPPER,
-  })
+  page.drawLine({ start: { x: MARGIN, y }, end: { x: PAGE_WIDTH - MARGIN, y }, thickness: 2, color: COPPER })
   y -= 24
 
   // Título
-  text('Factura proforma', { size: 18, bold: true, gap: 2 })
-  text(`Fecha: ${fecha} · Válido durante 15 días desde la fecha de emisión`, { size: 9, color: GRAY, gap: 14 })
+  text('Factura de venta', { size: 18, bold: true, gap: 2 })
+  text(`Nº ${numeroFactura} · Fecha: ${fecha}`, { size: 9, color: GRAY, gap: 14 })
 
   // Cliente
   text('CLIENTE', { size: 9, bold: true, color: GRAY, gap: 4 })
@@ -138,10 +126,6 @@ export async function buildProformaPdf(args: {
     ['Bastidor / VIN', vehicle.vin],
     ['Año', vehicle.anio],
     ['Kilómetros', vehicle.km !== null ? `${vehicle.km.toLocaleString('es-ES')} km` : null],
-    ['Motor', vehicle.motor],
-    ['Combustible', vehicle.combustible],
-    ['Transmisión', vehicle.transmision],
-    ['Color', vehicle.color],
   ]
   for (const [label, value] of vehicleFields) {
     if (value === null || value === '') continue
@@ -149,42 +133,22 @@ export async function buildProformaPdf(args: {
   }
   y -= 16
 
-  // Precio
+  // Importe
   const boxHeight = 60
-  page.drawRectangle({
-    x: MARGIN,
-    y: y - boxHeight,
-    width: CONTENT_WIDTH,
-    height: boxHeight,
-    color: STEEL_BG,
-  })
-  const priceLabelY = y - 20
-  const priceLabel = 'Precio ofertado'
-  const priceLabelWidth = font.widthOfTextAtSize(priceLabel, 9)
-  page.drawText(priceLabel, {
-    x: MARGIN + (CONTENT_WIDTH - priceLabelWidth) / 2,
-    y: priceLabelY,
-    size: 9,
-    font,
-    color: GRAY,
-  })
-  const priceValue = euro(precio)
-  const priceValueWidth = fontBold.widthOfTextAtSize(priceValue, 22)
-  page.drawText(priceValue, {
-    x: MARGIN + (CONTENT_WIDTH - priceValueWidth) / 2,
-    y: y - 44,
-    size: 22,
-    font: fontBold,
-    color: GRAPHITE,
-  })
+  page.drawRectangle({ x: MARGIN, y: y - boxHeight, width: CONTENT_WIDTH, height: boxHeight, color: STEEL_BG })
+  const totalLabel = 'Total factura'
+  const totalLabelWidth = font.widthOfTextAtSize(totalLabel, 9)
+  page.drawText(totalLabel, { x: MARGIN + (CONTENT_WIDTH - totalLabelWidth) / 2, y: y - 20, size: 9, font, color: GRAY })
+  const totalValue = euro(precio)
+  const totalValueWidth = fontBold.widthOfTextAtSize(totalValue, 22)
+  page.drawText(totalValue, { x: MARGIN + (CONTENT_WIDTH - totalValueWidth) / 2, y: y - 44, size: 22, font: fontBold, color: GRAPHITE })
   y -= boxHeight + 30
 
-  // Nota legal
+  // Nota legal REBU
   paragraph(
-    'Este documento es una factura proforma orientativa y no tiene validez como factura definitiva. Los vehículos de ocasión ' +
-      'se venden bajo el Régimen Especial de Bienes Usados (REBU), por lo que no es posible desglosar el IVA. ' +
-      'El precio final podría variar en función de la revisión definitiva del vehículo y de las condiciones ' +
-      'acordadas en el momento de la compraventa.'
+    'Operación acogida al Régimen Especial de Bienes Usados (REBU), conforme al artículo 135 y siguientes de la Ley ' +
+      '37/1992 del IVA. En aplicación de dicho régimen, no procede el desglose del Impuesto sobre el Valor Añadido en ' +
+      'esta factura.'
   )
 
   const bytes = await pdfDoc.save()

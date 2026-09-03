@@ -57,6 +57,47 @@ export default function GenerateContractModal({
     }
   }
 
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  // Todas nuestras facturas son REBU (sin desglose de IVA) — lo indica el
+  // propio PDF. El precio nunca se toma en silencio del precio publicado:
+  // siempre se confirma aquí, con la señal ya descontada por defecto.
+  async function generarFacturaVenta(precioSugeridoFactura: number) {
+    const precioStr = window.prompt(
+      'Precio para la factura de venta (€) — revísalo antes de generarla:',
+      String(precioSugeridoFactura)
+    )
+    if (precioStr === null) return
+    const precioFactura = Number(precioStr)
+    if (!precioFactura || precioFactura <= 0) {
+      setError('El precio de la factura no es válido — no se ha generado.')
+      return
+    }
+
+    const res = await fetch(`/api/vehiculos/${vehicleId}/factura-venta`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, precio: precioFactura }),
+    })
+    if (!res.ok) {
+      const resBody = await res.json().catch(() => null)
+      setError(resBody?.error ?? 'No se ha podido generar la factura de venta.')
+      return
+    }
+    const disposition = res.headers.get('Content-Disposition') ?? ''
+    const match = disposition.match(/filename="(.+)"/)
+    downloadBlob(await res.blob(), match?.[1] ?? 'factura-venta.pdf')
+  }
+
   async function handleGenerar() {
     if (!clientId) {
       setError('Selecciona o crea primero un cliente.')
@@ -120,16 +161,12 @@ export default function GenerateContractModal({
       }
       const disposition = res.headers.get('Content-Disposition') ?? ''
       const match = disposition.match(/filename="(.+)"/)
-      const filename = match?.[1] ?? 'contrato.pdf'
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      downloadBlob(await res.blob(), match?.[1] ?? 'contrato.pdf')
+
+      if (tipoContrato === 'reserva') {
+        await generarFacturaVenta(Number(precioTotal))
+      }
+
       onClose()
     } catch {
       setError('No se ha podido generar el contrato. Inténtalo de nuevo.')

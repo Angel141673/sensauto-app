@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import GenerateProformaModal from './GenerateProformaModal'
+import GenerateFacturaVentaModal from './GenerateFacturaVentaModal'
 
 type Client = { id: string; nombre: string }
 
-export default function GenerateProformaButton({
+export default function GenerateFacturaVentaButton({
   vehicleId,
   vehiculoLabel,
   clients,
@@ -21,10 +21,10 @@ export default function GenerateProformaButton({
   return (
     <>
       <button type="button" className="secondary-btn" onClick={() => setOpen(true)}>
-        Generar factura proforma
+        Generar factura de venta
       </button>
       {open && (
-        <GenerateProformaModal
+        <GenerateFacturaVentaModal
           vehicleId={vehicleId}
           vehiculoLabel={vehiculoLabel}
           clients={clients}

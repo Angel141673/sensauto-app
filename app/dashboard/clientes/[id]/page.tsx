@@ -6,6 +6,7 @@ import WhatsAppButton from '@/components/WhatsAppButton'
 import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSection'
 import ClientDniSection from '@/components/ClientDniSection'
 import GenerateContractButton from '@/components/GenerateContractButton'
+import DeleteClientButton from '@/components/DeleteClientButton'
 import { updateClientRecord, linkVehicleToClient, updateOperationEstado, unlinkVehicleFromClient } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
 import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
@@ -183,9 +184,12 @@ export default async function ClienteDetallePage({
     <div className="vehicles-page">
       <div className="vehicles-header">
         <h1>{client.nombre}</h1>
-        <Link href={`/dashboard/clientes/${client.id}?editar=1`} className="primary-btn">
-          Editar
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href={`/dashboard/clientes/${client.id}?editar=1`} className="primary-btn">
+            Editar
+          </Link>
+          <DeleteClientButton clientId={client.id} clientNombre={client.nombre} />
+        </div>
       </div>
 
       <section className="detail-section">

@@ -8,7 +8,11 @@ type Client = { id: string; nombre: string }
 
 const quickClientInitialState: QuickClientState = { status: 'idle' }
 
-export default function GenerateProformaModal({
+// Genera una factura de venta suelta, sin pasar por el contrato de reserva
+// — para el alta inicial en un caso poco habitual, o para corregir el
+// precio de una factura ya emitida generando una nueva (la anterior se
+// borra a mano desde Documentos). Todas las facturas son REBU.
+export default function GenerateFacturaVentaModal({
   vehicleId,
   vehiculoLabel,
   clients,
@@ -52,19 +56,19 @@ export default function GenerateProformaModal({
     setGenerando(true)
     setError(null)
     try {
-      const res = await fetch(`/api/vehiculos/${vehicleId}/presupuesto`, {
+      const res = await fetch(`/api/vehiculos/${vehicleId}/factura-venta`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ client_id: clientId, precio: precioNum }),
       })
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        setError(body?.error ?? 'No se ha podido generar la factura proforma.')
+        setError(body?.error ?? 'No se ha podido generar la factura.')
         return
       }
       const disposition = res.headers.get('Content-Disposition') ?? ''
       const match = disposition.match(/filename="(.+)"/)
-      const filename = match?.[1] ?? 'factura-proforma.pdf'
+      const filename = match?.[1] ?? 'factura-venta.pdf'
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -76,7 +80,7 @@ export default function GenerateProformaModal({
       URL.revokeObjectURL(url)
       onClose()
     } catch {
-      setError('No se ha podido generar la factura proforma. Inténtalo de nuevo.')
+      setError('No se ha podido generar la factura. Inténtalo de nuevo.')
     } finally {
       setGenerando(false)
     }
@@ -85,7 +89,7 @@ export default function GenerateProformaModal({
   return (
     <div className="modal-overlay">
       <div className="modal-box">
-        <h2>Generar factura proforma</h2>
+        <h2>Generar factura de venta</h2>
         <p className="form-note">Vehículo: {vehiculoLabel}</p>
 
         <div className="form-field">
@@ -145,7 +149,7 @@ export default function GenerateProformaModal({
         )}
 
         <div className="form-field" style={{ marginTop: 14 }}>
-          <label htmlFor="precio">Precio ofertado (€)</label>
+          <label htmlFor="precio">Precio de venta (€)</label>
           <input
             id="precio"
             type="number"
@@ -154,6 +158,7 @@ export default function GenerateProformaModal({
             onChange={(e) => setPrecio(e.target.value)}
           />
         </div>
+        <p className="form-note">Factura acogida al Régimen Especial de Bienes Usados (REBU), sin desglose de IVA.</p>
 
         {error && <p className="login-error">{error}</p>}
 

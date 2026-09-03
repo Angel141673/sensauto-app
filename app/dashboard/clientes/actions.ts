@@ -63,6 +63,55 @@ export async function updateClientRecord(clientId: string, formData: FormData) {
   redirect(`/dashboard/clientes/${clientId}`)
 }
 
+// Elimina el cliente entero (para altas hechas por error) junto con sus
+// documentos generales. Las operaciones (vínculos con vehículos) se borran
+// primero — si alguna tiene ya un contrato firmado, la base de datos
+// rechaza el borrado ahí mismo y no se toca nada más, igual que al
+// eliminar un vehículo.
+export async function deleteClient(clientId: string) {
+  const supabase = await createSupabaseClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { error: opsError } = await supabase.from('operations').delete().eq('client_id', clientId)
+  if (opsError) {
+    if (opsError.code === '23503') {
+      throw new Error(
+        'No se puede eliminar: este cliente tiene un contrato firmado. Quita antes esos vínculos con el vehículo.'
+      )
+    }
+    throw new Error('No se ha podido eliminar el cliente. Inténtalo de nuevo.')
+  }
+
+  const { data: vehicleDocs } = await supabase
+    .from('vehicle_documents')
+    .select('storage_path')
+    .eq('client_id', clientId)
+  if (vehicleDocs?.length) {
+    await supabase.storage.from('vehicle-documents').remove(vehicleDocs.map((d) => d.storage_path))
+    await supabase.from('vehicle_documents').delete().eq('client_id', clientId)
+  }
+
+  const { data: docs } = await supabase.from('documents').select('storage_path').eq('client_id', clientId)
+  if (docs?.length) {
+    await supabase.storage.from('documentos').remove(docs.map((d) => d.storage_path))
+  }
+  const { error: docsError } = await supabase.from('documents').delete().eq('client_id', clientId)
+  if (docsError) {
+    throw new Error('No se puede eliminar: alguno de sus documentos está vinculado a una firma.')
+  }
+
+  const { error } = await supabase.from('clients').delete().eq('id', clientId)
+  if (error) {
+    throw new Error('No se ha podido eliminar el cliente. Inténtalo de nuevo.')
+  }
+
+  revalidatePath('/dashboard/clientes')
+  redirect('/dashboard/clientes')
+}
+
 export type QuickClientState = {
   status: 'idle' | 'error'
   message?: string

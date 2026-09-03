@@ -23,7 +23,7 @@ export const DOCUMENT_TIPO_LABEL: Record<DocumentTipo, string> = {
   factura_venta: 'Factura de venta',
   tramite: 'Trámite',
   otro: 'Otro',
-  presupuesto: 'Presupuesto / factura proforma',
+  presupuesto: 'Factura proforma',
   dni: 'DNI / NIF',
 }
 

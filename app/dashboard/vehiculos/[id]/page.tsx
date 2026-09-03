@@ -7,6 +7,7 @@ import VehicleGeneralDocuments from '@/components/VehicleGeneralDocuments'
 import VehiclePhotoSection from '@/components/VehiclePhotoSection'
 import GenerateProformaButton from '@/components/GenerateProformaButton'
 import GenerateContractButton from '@/components/GenerateContractButton'
+import GenerateFacturaVentaButton from '@/components/GenerateFacturaVentaButton'
 import DeleteVehicleButton from '@/components/DeleteVehicleButton'
 import { updateVehicle } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
@@ -187,6 +188,12 @@ export default async function VehiculoDetallePage({
             vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
             clients={allClients ?? []}
             precioSugerido={vehicle.precio_venta_previsto}
+          />
+          <GenerateFacturaVentaButton
+            vehicleId={vehicle.id}
+            vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
+            clients={allClients ?? []}
+            precioSugerido={vehicle.precio_venta_real ?? vehicle.precio_venta_previsto}
           />
           <DeleteVehicleButton vehicleId={vehicle.id} vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`} />
         </div>

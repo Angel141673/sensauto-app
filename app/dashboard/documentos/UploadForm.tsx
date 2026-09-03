@@ -8,9 +8,9 @@ import { compressImage } from '@/lib/compressImage'
 
 // "Factura / gasto" no está aquí a propósito: esas facturas se registran
 // desde Gastos (que crea su propio documento vinculado), para que el
-// total cuente en inversión/márgenes. "Presupuesto" tampoco está: se
-// genera desde la ficha del vehículo (botón "Generar presupuesto"), que
-// ya lo guarda aquí automáticamente.
+// total cuente en inversión/márgenes. "Factura proforma" tampoco está: se
+// genera desde la ficha del vehículo (botón "Generar factura proforma"),
+// que ya lo guarda aquí automáticamente.
 const TIPOS = [
   { value: 'vehiculo', label: DOCUMENT_TIPO_LABEL.vehiculo },
   ...TIPOS_DOCUMENTO_VEHICULO.map((value) => ({ value, label: DOCUMENT_TIPO_LABEL[value] })),
