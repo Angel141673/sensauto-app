@@ -61,6 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   let buffer: Buffer
   let tipoDocumento: 'contrato_compraventa' | 'contrato_reserva'
+  let precioParaVehiculo: number | null = null
 
   if (tipoContrato === 'reserva') {
     const precioTotal = Number(body?.precio_total)
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!Number.isFinite(precio) || precio <= 0) {
       return NextResponse.json({ error: 'El precio no es válido.' }, { status: 400 })
     }
+    precioParaVehiculo = precio
     const entregaACuenta = body?.entrega_a_cuenta ? Number(body.entrega_a_cuenta) : null
     buffer = await buildCompraventaPdf({
       company,
@@ -137,6 +139,59 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       hash_sha256: createHash('sha256').update(buffer).digest('hex'),
       created_by: user.id,
     })
+  }
+
+  // Generar el contrato también mueve el vehículo por su ciclo de vida:
+  // crea/avanza el vínculo cliente-vehículo (operación) y, en compraventa,
+  // marca el vehículo como vendido. Nunca retrocede un estado ya más
+  // avanzado (p. ej. no reabre un "vendido" a "reservado"). A propósito
+  // no bloquea la descarga del PDF si algo aquí falla.
+  try {
+    const OPERATION_ORDER = ['contacto', 'reserva', 'compraventa', 'entrega', 'posventa']
+    const targetOperationEstado = tipoContrato === 'reserva' ? 'reserva' : 'compraventa'
+
+    const { data: existingOp } = await supabase
+      .from('operations')
+      .select('id, estado')
+      .eq('vehicle_id', vehicleId)
+      .eq('client_id', clientId)
+      .maybeSingle()
+
+    if (existingOp) {
+      if (OPERATION_ORDER.indexOf(targetOperationEstado) > OPERATION_ORDER.indexOf(existingOp.estado)) {
+        await supabase.from('operations').update({ estado: targetOperationEstado }).eq('id', existingOp.id)
+      }
+    } else {
+      await supabase.from('operations').insert({
+        vehicle_id: vehicleId,
+        client_id: clientId,
+        estado: targetOperationEstado,
+        created_by: user.id,
+      })
+    }
+
+    const VEHICLE_ORDER = ['entrada', 'preparacion', 'disponible', 'reservado', 'vendido', 'entregado', 'posventa']
+    const { data: vehicleEstadoRow } = await supabase.from('vehicles').select('estado').eq('id', vehicleId).single()
+    const currentVehicleEstado = vehicleEstadoRow?.estado ?? 'entrada'
+
+    if (tipoContrato === 'compraventa' && precioParaVehiculo !== null) {
+      if (VEHICLE_ORDER.indexOf('vendido') > VEHICLE_ORDER.indexOf(currentVehicleEstado)) {
+        await supabase
+          .from('vehicles')
+          .update({
+            estado: 'vendido',
+            precio_venta_real: precioParaVehiculo,
+            fecha_venta: new Date().toISOString().slice(0, 10),
+          })
+          .eq('id', vehicleId)
+      }
+    } else if (tipoContrato === 'reserva') {
+      if (VEHICLE_ORDER.indexOf('reservado') > VEHICLE_ORDER.indexOf(currentVehicleEstado)) {
+        await supabase.from('vehicles').update({ estado: 'reservado' }).eq('id', vehicleId)
+      }
+    }
+  } catch {
+    // No bloquea la descarga del PDF — el documento ya se generó y guardó.
   }
 
   return new NextResponse(new Uint8Array(buffer), {
