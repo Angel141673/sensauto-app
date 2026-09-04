@@ -673,6 +673,17 @@ button {
   color: var(--brand-accent-dark);
 }
 
+.danger-btn {
+  border-color: #b3261e;
+  color: #b3261e;
+}
+
+.danger-btn:hover {
+  border-color: #8c1d17;
+  color: #8c1d17;
+  background: #fbeceb;
+}
+
 .link-vehicle-box {
   margin-top: 18px;
   padding-top: 16px;

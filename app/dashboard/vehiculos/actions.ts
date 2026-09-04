@@ -185,26 +185,56 @@ export async function uploadVehiclePhoto(
   return { status: 'idle' }
 }
 
+export type DeleteVehicleState = {
+  status: 'idle' | 'error'
+  message?: string
+  blockedBySignature?: boolean
+}
+
 // Elimina el vehículo entero (para altas hechas por error) junto con todo
 // lo que cuelga de él: gastos, documentos generales, ficha técnica y su
 // propia foto. Las operaciones (vínculos con clientes) se borran primero
 // — si alguna tiene ya un contrato firmado, la base de datos rechaza el
 // borrado ahí mismo y no se toca nada más, protegiendo el historial.
-export async function deleteVehicle(vehicleId: string) {
+// Devuelve el motivo en vez de lanzar una excepción, para que se muestre
+// en pantalla en lugar de la página genérica de error. Con force=true
+// (segunda confirmación explícita en pantalla) borra también las firmas
+// de sus operaciones, de forma permanente.
+export async function deleteVehicle(
+  vehicleId: string,
+  prevState: DeleteVehicleState,
+  formData: FormData
+): Promise<DeleteVehicleState> {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const force = formData.get('force') === 'true'
+
+  if (force) {
+    const { data: ops } = await supabase.from('operations').select('id').eq('vehicle_id', vehicleId)
+    const opIds = (ops ?? []).map((o) => o.id)
+    if (opIds.length) {
+      const { data: sigs } = await supabase.from('signatures').select('storage_path').in('operation_id', opIds)
+      if (sigs?.length) {
+        await supabase.storage.from('firmas').remove(sigs.map((s) => s.storage_path))
+      }
+      await supabase.from('signatures').delete().in('operation_id', opIds)
+    }
+  }
+
   const { error: opsError } = await supabase.from('operations').delete().eq('vehicle_id', vehicleId)
   if (opsError) {
     if (opsError.code === '23503') {
-      throw new Error(
-        'No se puede eliminar: este vehículo tiene un contrato firmado. Quita antes el vínculo desde la ficha del cliente.'
-      )
+      return {
+        status: 'error',
+        blockedBySignature: true,
+        message: 'No se puede eliminar: este vehículo tiene un contrato firmado. Quita antes el vínculo desde la ficha del cliente.',
+      }
     }
-    throw new Error('No se ha podido eliminar el vehículo. Inténtalo de nuevo.')
+    return { status: 'error', message: 'No se ha podido eliminar el vehículo. Inténtalo de nuevo.' }
   }
 
   await supabase.from('expenses').delete().eq('vehicle_id', vehicleId)
@@ -223,9 +253,10 @@ export async function deleteVehicle(vehicleId: string) {
   }
   const { error: docsError } = await supabase.from('documents').delete().eq('vehicle_id', vehicleId)
   if (docsError) {
-    throw new Error(
-      'No se puede eliminar: alguno de sus documentos está vinculado a una firma. Revísalo antes de continuar.'
-    )
+    return {
+      status: 'error',
+      message: 'No se puede eliminar: alguno de sus documentos está vinculado a una firma. Revísalo antes de continuar.',
+    }
   }
 
   const { data: vehicle } = await supabase.from('vehicles').select('foto_path').eq('id', vehicleId).single()
@@ -235,7 +266,7 @@ export async function deleteVehicle(vehicleId: string) {
 
   const { error } = await supabase.from('vehicles').delete().eq('id', vehicleId)
   if (error) {
-    throw new Error('No se ha podido eliminar el vehículo. Inténtalo de nuevo.')
+    return { status: 'error', message: 'No se ha podido eliminar el vehículo. Inténtalo de nuevo.' }
   }
 
   revalidatePath('/dashboard/vehiculos')

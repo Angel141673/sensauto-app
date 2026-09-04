@@ -7,7 +7,8 @@ import ClientVehicleDocumentsSection from '@/components/ClientVehicleDocumentsSe
 import ClientDniSection from '@/components/ClientDniSection'
 import GenerateContractButton from '@/components/GenerateContractButton'
 import DeleteClientButton from '@/components/DeleteClientButton'
-import { updateClientRecord, linkVehicleToClient, updateOperationEstado, unlinkVehicleFromClient } from '../actions'
+import { updateClientRecord, linkVehicleToClient, updateOperationEstado } from '../actions'
+import UnlinkVehicleButton from '@/components/UnlinkVehicleButton'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
 import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
 import { withDownload } from '@/lib/downloadUrl'
@@ -260,12 +261,7 @@ export default async function ClienteDetallePage({
                   clients={[{ id: client.id, nombre: client.nombre }]}
                   precioSugerido={op.vehicle.precio_venta_previsto}
                 />
-                <form action={unlinkVehicleFromClient.bind(null, op.id)}>
-                  <input type="hidden" name="client_id" value={client.id} />
-                  <button type="submit" className="secondary-btn">
-                    Quitar vínculo
-                  </button>
-                </form>
+                <UnlinkVehicleButton operationId={op.id} clientId={client.id} />
               </li>
             ))}
           </ul>
