@@ -13,12 +13,14 @@ export default function GenerateContractModal({
   vehiculoLabel,
   clients,
   precioSugerido,
+  facturaImporte,
   onClose,
 }: {
   vehicleId: string
   vehiculoLabel: string
   clients: Client[]
   precioSugerido: number | null
+  facturaImporte: number | null
   onClose: () => void
 }) {
   const [tipoContrato, setTipoContrato] = useState<'reserva' | 'compraventa'>('reserva')
@@ -35,8 +37,10 @@ export default function GenerateContractModal({
   const [plazoDias, setPlazoDias] = useState('15')
   const [condicionadaFinanciacion, setCondicionadaFinanciacion] = useState(false)
 
-  // Compraventa
-  const [precio, setPrecio] = useState(precioSugerido ? String(precioSugerido) : '')
+  // Compraventa — el precio no se reintroduce aquí: es el mismo importe ya
+  // fijado en la factura de venta (obligatoria antes de poder generar este
+  // contrato), así reserva, factura y compraventa muestran siempre la
+  // misma cifra.
   const [entregaACuenta, setEntregaACuenta] = useState('')
   const [fechaEntrega, setFechaEntrega] = useState('')
   const [formaPagoVenta, setFormaPagoVenta] = useState('')
@@ -68,36 +72,6 @@ export default function GenerateContractModal({
     URL.revokeObjectURL(url)
   }
 
-  // Todas nuestras facturas son REBU (sin desglose de IVA) — lo indica el
-  // propio PDF. El precio nunca se toma en silencio del precio publicado:
-  // siempre se confirma aquí, con la señal ya descontada por defecto.
-  async function generarFacturaVenta(precioSugeridoFactura: number) {
-    const precioStr = window.prompt(
-      'Precio para la factura de venta (€) — revísalo antes de generarla:',
-      String(precioSugeridoFactura)
-    )
-    if (precioStr === null) return
-    const precioFactura = Number(precioStr)
-    if (!precioFactura || precioFactura <= 0) {
-      setError('El precio de la factura no es válido — no se ha generado.')
-      return
-    }
-
-    const res = await fetch(`/api/vehiculos/${vehicleId}/factura-venta`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: clientId, precio: precioFactura }),
-    })
-    if (!res.ok) {
-      const resBody = await res.json().catch(() => null)
-      setError(resBody?.error ?? 'No se ha podido generar la factura de venta.')
-      return
-    }
-    const disposition = res.headers.get('Content-Disposition') ?? ''
-    const match = disposition.match(/filename="(.+)"/)
-    downloadBlob(await res.blob(), match?.[1] ?? 'factura-venta.pdf')
-  }
-
   async function handleGenerar() {
     if (!clientId) {
       setError('Selecciona o crea primero un cliente.')
@@ -127,15 +101,13 @@ export default function GenerateContractModal({
         observaciones: observaciones || null,
       }
     } else {
-      const precioNum = Number(precio)
-      if (!precioNum || precioNum <= 0) {
-        setError('Introduce el precio final pactado.')
+      if (!facturaImporte) {
+        setError('Genera primero la factura de venta de esta operación — el contrato de compraventa toma su precio de ahí.')
         return
       }
       body = {
         client_id: clientId,
         tipo_contrato: 'compraventa',
-        precio: precioNum,
         entrega_a_cuenta: entregaACuenta ? Number(entregaACuenta) : null,
         fecha_entrega: fechaEntrega || null,
         forma_pago: formaPagoVenta || null,
@@ -162,10 +134,6 @@ export default function GenerateContractModal({
       const disposition = res.headers.get('Content-Disposition') ?? ''
       const match = disposition.match(/filename="(.+)"/)
       downloadBlob(await res.blob(), match?.[1] ?? 'contrato.pdf')
-
-      if (tipoContrato === 'reserva') {
-        await generarFacturaVenta(Number(precioTotal))
-      }
 
       onClose()
     } catch {
@@ -295,8 +263,17 @@ export default function GenerateContractModal({
         ) : (
           <div className="form-grid" style={{ marginTop: 14 }}>
             <div className="form-field">
-              <label htmlFor="precio">Precio final pactado (€)</label>
-              <input id="precio" type="number" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} />
+              <label>Precio final pactado (€)</label>
+              {facturaImporte ? (
+                <p style={{ margin: 0, fontWeight: 600 }}>
+                  {facturaImporte.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                </p>
+              ) : (
+                <p className="login-error" style={{ margin: 0 }}>
+                  Falta generar la factura de venta de esta operación.
+                </p>
+              )}
+              <p className="form-note">Es el mismo importe de la factura de venta — no se puede cambiar aquí.</p>
             </div>
             <div className="form-field">
               <label htmlFor="entrega_a_cuenta">Entrega a cuenta / reserva (€)</label>

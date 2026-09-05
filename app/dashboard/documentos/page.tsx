@@ -3,8 +3,10 @@ import { redirect } from 'next/navigation'
 import DocumentUploadForm from './UploadForm'
 import { deleteDocument } from './actions'
 import SelectCompanyPrompt from '@/components/SelectCompanyPrompt'
-import { DOCUMENT_TIPO_LABEL as TIPO_LABEL, type DocumentTipo } from '@/lib/documents'
+import RectificarFacturaButton from '@/components/RectificarFacturaButton'
+import { DOCUMENT_TIPO_LABEL as TIPO_LABEL, TIPOS_FACTURA_PROTEGIDA, type DocumentTipo } from '@/lib/documents'
 import { withDownload } from '@/lib/downloadUrl'
+import { getInvoicesByDocumentIds, formatNumeroFactura } from '@/lib/invoiceLookup'
 
 export default async function DocumentosPage({
   searchParams,
@@ -52,7 +54,9 @@ export default async function DocumentosPage({
 
   let query = supabase
     .from('documents')
-    .select('id, tipo, nombre_archivo, storage_path, notas, created_at, vehicle:vehicles(marca, modelo), client:clients(nombre)')
+    .select(
+      'id, tipo, nombre_archivo, storage_path, notas, created_at, vehicle:vehicles(marca, modelo), client:clients(nombre)'
+    )
     .eq('company_id', activeCompany.id)
     .order('created_at', { ascending: false })
 
@@ -71,6 +75,11 @@ export default async function DocumentosPage({
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
+
+  const facturaDocIds = documentsWithUrls
+    .filter((d: any) => TIPOS_FACTURA_PROTEGIDA.includes(d.tipo as DocumentTipo))
+    .map((d: any) => d.id)
+  const invoiceMap = await getInvoicesByDocumentIds(supabase, facturaDocIds)
 
   return (
     <div className="vehicles-page">
@@ -106,37 +115,49 @@ export default async function DocumentosPage({
       )}
 
       <ul className="vehicle-list">
-        {documentsWithUrls.map((doc: any) => (
-          <li key={doc.id} className="vehicle-card">
-            <div className="vehicle-card-main">
-              <strong>{doc.nombre_archivo}</strong>
-              <span className="vehicle-card-sub">
-                {TIPO_LABEL[doc.tipo as DocumentTipo] ?? doc.tipo}
-                {doc.vehicle ? ` · ${doc.vehicle.marca} ${doc.vehicle.modelo}` : ''}
-                {doc.client ? ` · ${doc.client.nombre}` : ''}
-                {' · '}
-                {new Date(doc.created_at).toLocaleDateString('es-ES')}
-              </span>
-            </div>
-            <div className="vehicle-card-side">
-              {doc.url && (
-                <>
-                  <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
-                    Ver
-                  </a>
-                  <a href={withDownload(doc.url, doc.nombre_archivo)} className="secondary-btn">
-                    Descargar
-                  </a>
-                </>
-              )}
-              <form action={deleteDocument.bind(null, doc.id, doc.storage_path)}>
-                <button type="submit" className="secondary-btn">
-                  Eliminar
-                </button>
-              </form>
-            </div>
-          </li>
-        ))}
+        {documentsWithUrls.map((doc: any) => {
+          const invoice = invoiceMap.get(doc.id)
+          const numeroFactura = invoice ? formatNumeroFactura(invoice) : null
+          return (
+            <li key={doc.id} className="vehicle-card">
+              <div className="vehicle-card-main">
+                <strong>{numeroFactura ? `${numeroFactura} · ${doc.nombre_archivo}` : doc.nombre_archivo}</strong>
+                <span className="vehicle-card-sub">
+                  {TIPO_LABEL[doc.tipo as DocumentTipo] ?? doc.tipo}
+                  {doc.vehicle ? ` · ${doc.vehicle.marca} ${doc.vehicle.modelo}` : ''}
+                  {doc.client ? ` · ${doc.client.nombre}` : ''}
+                  {' · '}
+                  {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                </span>
+              </div>
+              <div className="vehicle-card-side">
+                {doc.url && (
+                  <>
+                    <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
+                      Ver
+                    </a>
+                    <a href={withDownload(doc.url, doc.nombre_archivo)} className="secondary-btn">
+                      Descargar
+                    </a>
+                  </>
+                )}
+                {TIPOS_FACTURA_PROTEGIDA.includes(doc.tipo as DocumentTipo) ? (
+                  <RectificarFacturaButton
+                    documentId={doc.id}
+                    facturaLabel={numeroFactura ?? doc.nombre_archivo}
+                    importeActual={invoice?.importe}
+                  />
+                ) : (
+                  <form action={deleteDocument.bind(null, doc.id, doc.storage_path)}>
+                    <button type="submit" className="secondary-btn">
+                      Eliminar
+                    </button>
+                  </form>
+                )}
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

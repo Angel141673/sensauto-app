@@ -55,6 +55,16 @@ export default async function ClienteDetallePage({
     .eq('client_id', client.id)
     .order('created_at', { ascending: false })
 
+  // Factura de venta de cada operación (si existe) — fija el precio del
+  // contrato de compraventa, para que ambos documentos muestren la misma
+  // cifra en vez de dejar que se reintroduzca a mano en cada paso.
+  const operationIds = (operations ?? []).map((o: any) => o.id)
+  const { data: facturasPorOperacion } =
+    operationIds.length > 0
+      ? await supabase.from('invoices').select('operation_id, importe').in('operation_id', operationIds).eq('tipo', 'venta')
+      : { data: [] }
+  const importePorOperacion = new Map((facturasPorOperacion ?? []).map((f: any) => [f.operation_id, f.importe]))
+
   // Vehículos de cualquiera de las dos empresas que aún no están vinculados
   // a este cliente — un mismo cliente puede tener operaciones en ambas.
   const linkedVehicleIds = (operations ?? []).map((o: any) => o.vehicle?.id).filter(Boolean)
@@ -82,8 +92,8 @@ export default async function ClienteDetallePage({
     })
   )
 
-  const dniDocs = documentsWithUrls.filter((d: any) => d.tipo === 'dni')
-  const otherDocs = documentsWithUrls.filter((d: any) => d.tipo !== 'dni')
+  const dniDocs = documentsWithUrls.filter((d: any) => d.tipo === 'dni_anverso' || d.tipo === 'dni_reverso')
+  const otherDocs = documentsWithUrls.filter((d: any) => d.tipo !== 'dni_anverso' && d.tipo !== 'dni_reverso')
 
   const { data: memberships } = await supabase
     .from('user_companies')
@@ -207,7 +217,6 @@ export default async function ClienteDetallePage({
 
       <ClientDniSection
         clientId={client.id}
-        companies={companies}
         defaultCompanyId={defaultCompanyId}
         documentos={dniDocs}
       />
@@ -260,6 +269,7 @@ export default async function ClienteDetallePage({
                   vehiculoLabel={`${op.vehicle.marca} ${op.vehicle.modelo}`}
                   clients={[{ id: client.id, nombre: client.nombre }]}
                   precioSugerido={op.vehicle.precio_venta_previsto}
+                  facturaImporte={importePorOperacion.get(op.id) ?? null}
                 />
                 <UnlinkVehicleButton operationId={op.id} clientId={client.id} />
               </li>

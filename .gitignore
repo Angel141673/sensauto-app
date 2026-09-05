@@ -10,3 +10,6 @@ node_modules
 
 # Paquetes comprimidos de entrega/backup (no son código fuente)
 *.zip
+
+# Artefacto local de `tsc --noEmit` incremental
+tsconfig.tsbuildinfo

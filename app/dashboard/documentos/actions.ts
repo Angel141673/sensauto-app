@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createHash } from 'crypto'
+import { TIPOS_FACTURA_PROTEGIDA } from '@/lib/documents'
 
 export type UploadState = {
   status: 'idle' | 'duplicate' | 'error' | 'success'
@@ -112,12 +113,21 @@ export async function getDocumentUrl(storagePath: string) {
   return data.signedUrl
 }
 
+// Las facturas (venta y rectificativas) tienen numeración correlativa
+// obligatoria: no se pueden borrar sin más, solo corregir emitiendo una
+// factura rectificativa (ver RectificarFacturaButton). Este chequeo es
+// defensa en profundidad — la UI ya no muestra "Eliminar" para ellas.
 export async function deleteDocument(documentId: string, storagePath: string) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  const { data: doc } = await supabase.from('documents').select('tipo').eq('id', documentId).single()
+  if (doc && TIPOS_FACTURA_PROTEGIDA.includes(doc.tipo as any)) {
+    return
+  }
 
   await supabase.storage.from('documentos').remove([storagePath])
   await supabase.from('documents').delete().eq('id', documentId)

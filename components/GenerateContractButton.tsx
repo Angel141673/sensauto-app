@@ -10,11 +10,13 @@ export default function GenerateContractButton({
   vehiculoLabel,
   clients,
   precioSugerido,
+  facturaImporte,
 }: {
   vehicleId: string
   vehiculoLabel: string
   clients: Client[]
   precioSugerido: number | null
+  facturaImporte: number | null
 }) {
   const [open, setOpen] = useState(false)
 
@@ -29,6 +31,7 @@ export default function GenerateContractButton({
           vehiculoLabel={vehiculoLabel}
           clients={clients}
           precioSugerido={precioSugerido}
+          facturaImporte={facturaImporte}
           onClose={() => setOpen(false)}
         />
       )}

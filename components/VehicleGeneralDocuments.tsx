@@ -3,10 +3,11 @@
 import { useRef, useState } from 'react'
 import { useFormState } from 'react-dom'
 import { uploadDocument, deleteDocument, type UploadState } from '@/app/dashboard/documentos/actions'
-import { DOCUMENT_TIPO_LABEL, TIPOS_DOCUMENTO_VEHICULO } from '@/lib/documents'
+import { DOCUMENT_TIPO_LABEL, TIPOS_DOCUMENTO_VEHICULO, TIPOS_FACTURA_PROTEGIDA, type DocumentTipo } from '@/lib/documents'
 import { compressImage } from '@/lib/compressImage'
 import { withDownload } from '@/lib/downloadUrl'
 import SendDocumentsModal, { type SendableDoc } from './SendDocumentsModal'
+import RectificarFacturaButton from './RectificarFacturaButton'
 
 type Doc = {
   id: string
@@ -25,6 +26,7 @@ export default function VehicleGeneralDocuments({
   vehiculoLabel,
   estado,
   documentos,
+  facturaInfo,
   sendableDocs,
   clienteEmail,
 }: {
@@ -33,6 +35,7 @@ export default function VehicleGeneralDocuments({
   vehiculoLabel: string
   estado: string
   documentos: Doc[]
+  facturaInfo: Record<string, { numeroFactura: string; importe: number }>
   sendableDocs: SendableDoc[]
   clienteEmail: string | null
 }) {
@@ -115,33 +118,47 @@ export default function VehicleGeneralDocuments({
         <p className="empty-state">Sin documentos todavía.</p>
       ) : (
         <ul className="pending-list">
-          {documentos.map((doc) => (
-            <li key={doc.id} className="vehicle-card">
-              <div className="vehicle-card-main">
-                <strong>{DOCUMENT_TIPO_LABEL[doc.tipo as keyof typeof DOCUMENT_TIPO_LABEL] ?? doc.tipo}</strong>
-                <span className="vehicle-card-sub">
-                  {doc.nombre_archivo} · {new Date(doc.created_at).toLocaleDateString('es-ES')}
-                </span>
-              </div>
-              <div className="vehicle-card-side">
-                {doc.url && (
-                  <>
-                    <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
-                      Ver
-                    </a>
-                    <a href={withDownload(doc.url, doc.nombre_archivo)} className="secondary-btn">
-                      Descargar
-                    </a>
-                  </>
-                )}
-                <form action={deleteDocument.bind(null, doc.id, doc.storage_path)}>
-                  <button type="submit" className="secondary-btn">
-                    Eliminar
-                  </button>
-                </form>
-              </div>
-            </li>
-          ))}
+          {documentos.map((doc) => {
+            const factura = facturaInfo[doc.id]
+            return (
+              <li key={doc.id} className="vehicle-card">
+                <div className="vehicle-card-main">
+                  <strong>
+                    {factura ? `${factura.numeroFactura} · ` : ''}
+                    {DOCUMENT_TIPO_LABEL[doc.tipo as keyof typeof DOCUMENT_TIPO_LABEL] ?? doc.tipo}
+                  </strong>
+                  <span className="vehicle-card-sub">
+                    {doc.nombre_archivo} · {new Date(doc.created_at).toLocaleDateString('es-ES')}
+                  </span>
+                </div>
+                <div className="vehicle-card-side">
+                  {doc.url && (
+                    <>
+                      <a href={doc.url} target="_blank" rel="noreferrer" className="secondary-btn">
+                        Ver
+                      </a>
+                      <a href={withDownload(doc.url, doc.nombre_archivo)} className="secondary-btn">
+                        Descargar
+                      </a>
+                    </>
+                  )}
+                  {TIPOS_FACTURA_PROTEGIDA.includes(doc.tipo as DocumentTipo) ? (
+                    <RectificarFacturaButton
+                      documentId={doc.id}
+                      facturaLabel={factura?.numeroFactura ?? doc.nombre_archivo}
+                      importeActual={factura?.importe}
+                    />
+                  ) : (
+                    <form action={deleteDocument.bind(null, doc.id, doc.storage_path)}>
+                      <button type="submit" className="secondary-btn">
+                        Eliminar
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
 

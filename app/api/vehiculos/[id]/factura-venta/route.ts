@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID, createHash } from 'crypto'
 import { createClient } from '@/lib/supabaseServer'
 import { buildFacturaVentaPdf } from '@/lib/facturaVentaPdf'
+import { getOrCreateOperationId } from '@/lib/operations'
+import { formatNumeroFactura } from '@/lib/invoiceLookup'
 
 // Genera la factura de venta para un vehículo + cliente. Se dispara desde el
-// modal de "Generar contrato" al hacer la reserva (con el precio que el
-// usuario confirma en ese momento, nunca en silencio el precio publicado),
-// no automáticamente a partir de otro dato. Todas las facturas son REBU
-// (sin desglose de IVA) — así lo indica el propio PDF.
+// modal de "Generar contrato" al hacer la reserva o la compraventa (con el
+// precio que el usuario confirma en ese momento, nunca en silencio el
+// precio publicado), no automáticamente a partir de otro dato. Todas las
+// facturas son REBU (sin desglose de IVA) — así lo indica el propio PDF.
+//
+// La numeración correlativa y el registro estructurado de la factura viven
+// en public.invoices (no en public.documents) — es el mismo sistema ya
+// usado por el trigger que exige factura antes de un contrato de
+// compraventa. public.documents solo guarda el PDF.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: vehicleId } = await params
   const supabase = await createClient()
@@ -49,6 +56,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     return NextResponse.json({ error: 'Cliente no encontrado.' }, { status: 404 })
   }
 
+  let operationId: string
+  try {
+    operationId = await getOrCreateOperationId(supabase, {
+      vehicleId,
+      clientId,
+      companyId: vehicle.company_id,
+      userId: user.id,
+    })
+  } catch {
+    return NextResponse.json({ error: 'No se ha podido preparar la operación de este cliente y vehículo.' }, { status: 500 })
+  }
+
+  const { data: yaFacturada } = await supabase
+    .from('invoices')
+    .select('id')
+    .eq('operation_id', operationId)
+    .eq('tipo', 'venta')
+    .maybeSingle()
+  if (yaFacturada) {
+    return NextResponse.json(
+      { error: 'Esta operación ya tiene una factura de venta. Usa "Rectificar" para corregirla.' },
+      { status: 409 }
+    )
+  }
+
   const companyRow = vehicle.company as any
   const company = {
     razonSocial: companyRow?.razon_social || companyRow?.name || '',
@@ -58,16 +90,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     email: companyRow?.email ?? null,
   }
 
-  // Numeración correlativa sencilla: año + nº de facturas de venta ya
-  // emitidas por esta empresa en el año en curso.
-  const yearStart = `${new Date().getFullYear()}-01-01`
-  const { count } = await supabase
-    .from('documents')
-    .select('id', { count: 'exact', head: true })
-    .eq('company_id', vehicle.company_id)
-    .eq('tipo', 'factura_venta')
-    .gte('created_at', yearStart)
-  const numeroFactura = `${new Date().getFullYear()}/${String((count ?? 0) + 1).padStart(4, '0')}`
+  // Numeración correlativa: nº reservado de forma atómica en
+  // public.invoice_counters vía public.siguiente_numero_factura (evita que
+  // dos facturas generadas casi a la vez salgan con el mismo número).
+  const anio = new Date().getFullYear()
+  const { data: numero, error: numeroError } = await supabase.rpc('siguiente_numero_factura', {
+    p_company_id: vehicle.company_id,
+    p_anio: anio,
+  })
+  if (numeroError || !numero) {
+    return NextResponse.json({ error: 'No se ha podido generar el número de factura.' }, { status: 500 })
+  }
+  const numeroFactura = formatNumeroFactura({ anio, numero, tipo: 'venta' })
 
   const buffer = await buildFacturaVentaPdf({
     company,
@@ -91,18 +125,38 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .upload(storagePath, buffer, { contentType: 'application/pdf' })
 
   if (!uploadError) {
-    await supabase.from('documents').insert({
-      company_id: vehicle.company_id,
-      vehicle_id: vehicleId,
-      client_id: clientId,
-      tipo: 'factura_venta',
-      nombre_archivo: nombreArchivo,
-      storage_path: storagePath,
-      mime_type: 'application/pdf',
-      tamano_bytes: buffer.length,
-      hash_sha256: createHash('sha256').update(buffer).digest('hex'),
-      created_by: user.id,
-    })
+    const { data: documentRow } = await supabase
+      .from('documents')
+      .insert({
+        company_id: vehicle.company_id,
+        vehicle_id: vehicleId,
+        client_id: clientId,
+        operation_id: operationId,
+        tipo: 'factura_venta',
+        nombre_archivo: nombreArchivo,
+        storage_path: storagePath,
+        mime_type: 'application/pdf',
+        tamano_bytes: buffer.length,
+        hash_sha256: createHash('sha256').update(buffer).digest('hex'),
+        created_by: user.id,
+      })
+      .select('id')
+      .single()
+
+    if (documentRow) {
+      await supabase.from('invoices').insert({
+        company_id: vehicle.company_id,
+        operation_id: operationId,
+        vehicle_id: vehicleId,
+        client_id: clientId,
+        numero,
+        anio,
+        importe: precio,
+        tipo: 'venta',
+        document_id: documentRow.id,
+        created_by: user.id,
+      })
+    }
   }
 
   return new NextResponse(new Uint8Array(buffer), {

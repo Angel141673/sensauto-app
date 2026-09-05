@@ -9,10 +9,12 @@ export type DocumentTipo =
   | 'contrato_compraventa'
   | 'factura_compra'
   | 'factura_venta'
+  | 'factura_rectificativa'
   | 'tramite'
   | 'otro'
   | 'presupuesto'
-  | 'dni'
+  | 'dni_anverso'
+  | 'dni_reverso'
 
 export const DOCUMENT_TIPO_LABEL: Record<DocumentTipo, string> = {
   vehiculo: 'Documentación del vehículo',
@@ -21,11 +23,18 @@ export const DOCUMENT_TIPO_LABEL: Record<DocumentTipo, string> = {
   contrato_compraventa: 'Contrato de compraventa',
   factura_compra: 'Factura de compra',
   factura_venta: 'Factura de venta',
+  factura_rectificativa: 'Factura rectificativa',
   tramite: 'Trámite',
   otro: 'Otro',
   presupuesto: 'Factura proforma',
-  dni: 'DNI / NIF',
+  dni_anverso: 'DNI (anverso)',
+  dni_reverso: 'DNI (reverso)',
 }
+
+// Tipos de documento que son facturas legales con numeración
+// correlativa obligatoria: nunca se pueden borrar sin más, solo
+// corregir emitiendo una factura rectificativa que las referencie.
+export const TIPOS_FACTURA_PROTEGIDA: DocumentTipo[] = ['factura_venta', 'factura_rectificativa']
 
 // Tipos elegibles al subir un documento vinculado a un vehículo desde su
 // propia ficha — no incluye "factura" (viene de Gastos) ni "presupuesto"
@@ -47,7 +56,12 @@ export function opcionesEnvioParaTipo(tipo: DocumentTipo): { marcadoPorDefecto: 
   if (tipo === 'factura_compra') {
     return { marcadoPorDefecto: false, warning: '⚠️ Documento interno — normalmente no se envía al cliente' }
   }
-  if (tipo === 'contrato_reserva' || tipo === 'contrato_compraventa' || tipo === 'factura_venta') {
+  if (
+    tipo === 'contrato_reserva' ||
+    tipo === 'contrato_compraventa' ||
+    tipo === 'factura_venta' ||
+    tipo === 'factura_rectificativa'
+  ) {
     return { marcadoPorDefecto: true }
   }
   return { marcadoPorDefecto: false }

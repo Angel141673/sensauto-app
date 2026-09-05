@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID, createHash } from 'crypto'
 import { createClient } from '@/lib/supabaseServer'
 import { buildCompraventaPdf, buildReservaPdf } from '@/lib/contractPdf'
+import { getOrCreateOperationId } from '@/lib/operations'
 
 // Genera el contrato de reserva o de compraventa para un vehículo + cliente,
 // con los datos fiscales de la empresa dueña del vehículo (SENSAUTO o
@@ -59,9 +60,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     datosBancarios: companyRow?.datos_bancarios ?? null,
   }
 
+  let operationId: string
+  try {
+    operationId = await getOrCreateOperationId(supabase, {
+      vehicleId,
+      clientId,
+      companyId: vehicle.company_id,
+      userId: user.id,
+    })
+  } catch {
+    return NextResponse.json({ error: 'No se ha podido preparar la operación de este cliente y vehículo.' }, { status: 500 })
+  }
+
+  // El contrato de compraventa exige que la operación ya tenga factura de
+  // venta (lo blinda también un trigger en base de datos) — se comprueba
+  // aquí para devolver un error legible en vez de una excepción de SQL. El
+  // precio del contrato se toma de esa factura, nunca de lo que mande el
+  // cliente: así reserva, factura y compraventa muestran siempre la misma
+  // cifra, sin depender de que nadie la retecleé igual en cada paso.
+  let precioFacturaCompraventa: number | null = null
+  if (tipoContrato === 'compraventa') {
+    const { data: facturaExistente } = await supabase
+      .from('invoices')
+      .select('importe')
+      .eq('operation_id', operationId)
+      .maybeSingle()
+    if (!facturaExistente) {
+      return NextResponse.json(
+        { error: 'Genera primero la factura de venta de esta operación.' },
+        { status: 409 }
+      )
+    }
+    precioFacturaCompraventa = facturaExistente.importe
+  }
+
   let buffer: Buffer
   let tipoDocumento: 'contrato_compraventa' | 'contrato_reserva'
   let precioParaVehiculo: number | null = null
+  let precioReserva: number | null = null
 
   if (tipoContrato === 'reserva') {
     const precioTotal = Number(body?.precio_total)
@@ -69,6 +105,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!Number.isFinite(precioTotal) || precioTotal <= 0 || !Number.isFinite(senal) || senal < 0) {
       return NextResponse.json({ error: 'El precio total y la señal no son válidos.' }, { status: 400 })
     }
+    precioReserva = precioTotal
     buffer = await buildReservaPdf({
       company,
       client,
@@ -84,10 +121,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
     tipoDocumento = 'contrato_reserva'
   } else {
-    const precio = Number(body?.precio)
-    if (!Number.isFinite(precio) || precio <= 0) {
-      return NextResponse.json({ error: 'El precio no es válido.' }, { status: 400 })
-    }
+    const precio = precioFacturaCompraventa as number
     precioParaVehiculo = precio
     const entregaACuenta = body?.entrega_a_cuenta ? Number(body.entrega_a_cuenta) : null
     buffer = await buildCompraventaPdf({
@@ -131,6 +165,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       company_id: vehicle.company_id,
       vehicle_id: vehicleId,
       client_id: clientId,
+      operation_id: operationId,
       tipo: tipoDocumento,
       nombre_archivo: nombreArchivo,
       storage_path: storagePath,
@@ -142,32 +177,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   }
 
   // Generar el contrato también mueve el vehículo por su ciclo de vida:
-  // crea/avanza el vínculo cliente-vehículo (operación) y, en compraventa,
-  // marca el vehículo como vendido. Nunca retrocede un estado ya más
-  // avanzado (p. ej. no reabre un "vendido" a "reservado"). A propósito
-  // no bloquea la descarga del PDF si algo aquí falla.
+  // avanza el estado de la operación y, en compraventa, marca el vehículo
+  // como vendido. Nunca retrocede un estado ya más avanzado (p. ej. no
+  // reabre un "vendido" a "reservado"). A propósito no bloquea la
+  // descarga del PDF si algo aquí falla.
   try {
     const OPERATION_ORDER = ['contacto', 'reserva', 'compraventa', 'entrega', 'posventa']
     const targetOperationEstado = tipoContrato === 'reserva' ? 'reserva' : 'compraventa'
 
     const { data: existingOp } = await supabase
       .from('operations')
-      .select('id, estado')
-      .eq('vehicle_id', vehicleId)
-      .eq('client_id', clientId)
-      .maybeSingle()
+      .select('estado')
+      .eq('id', operationId)
+      .single()
 
-    if (existingOp) {
-      if (OPERATION_ORDER.indexOf(targetOperationEstado) > OPERATION_ORDER.indexOf(existingOp.estado)) {
-        await supabase.from('operations').update({ estado: targetOperationEstado }).eq('id', existingOp.id)
-      }
-    } else {
-      await supabase.from('operations').insert({
-        vehicle_id: vehicleId,
-        client_id: clientId,
-        estado: targetOperationEstado,
-        created_by: user.id,
-      })
+    if (existingOp && OPERATION_ORDER.indexOf(targetOperationEstado) > OPERATION_ORDER.indexOf(existingOp.estado)) {
+      await supabase.from('operations').update({ estado: targetOperationEstado }).eq('id', operationId)
     }
 
     const VEHICLE_ORDER = ['entrada', 'preparacion', 'disponible', 'reservado', 'vendido', 'entregado', 'posventa']
@@ -185,10 +210,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           })
           .eq('id', vehicleId)
       }
-    } else if (tipoContrato === 'reserva') {
+    } else if (tipoContrato === 'reserva' && precioReserva !== null) {
+      // El precio pactado en la reserva pasa a ser el precio de referencia
+      // del vehículo — así la factura de venta (siguiente paso) sugiere
+      // por defecto esta misma cifra en vez de la prevista originalmente.
+      const vehicleUpdate: Record<string, unknown> = { precio_venta_previsto: precioReserva }
       if (VEHICLE_ORDER.indexOf('reservado') > VEHICLE_ORDER.indexOf(currentVehicleEstado)) {
-        await supabase.from('vehicles').update({ estado: 'reservado' }).eq('id', vehicleId)
+        vehicleUpdate.estado = 'reservado'
       }
+      await supabase.from('vehicles').update(vehicleUpdate).eq('id', vehicleId)
     }
   } catch {
     // No bloquea la descarga del PDF — el documento ya se generó y guardó.

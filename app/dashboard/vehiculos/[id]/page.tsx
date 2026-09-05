@@ -11,8 +11,9 @@ import GenerateFacturaVentaButton from '@/components/GenerateFacturaVentaButton'
 import DeleteVehicleButton from '@/components/DeleteVehicleButton'
 import { updateVehicle } from '../actions'
 import { TIPO_DOCUMENTO_LABEL as FICHA_TECNICA_LABEL } from '@/lib/vehicleDocuments'
-import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL } from '@/lib/documents'
+import { opcionesEnvioParaTipo, DOCUMENT_TIPO_LABEL, TIPOS_FACTURA_PROTEGIDA, type DocumentTipo } from '@/lib/documents'
 import type { SendableDoc } from '@/components/SendDocumentsModal'
+import { getInvoicesByDocumentIds, formatNumeroFactura } from '@/lib/invoiceLookup'
 
 const ESTADO_LABEL: Record<string, string> = {
   entrada: 'Entrada / compra',
@@ -74,6 +75,19 @@ export default async function VehiculoDetallePage({
     .eq('vehicle_id', vehicle.id)
     .order('created_at', { ascending: false })
 
+  // La operación más reciente de este vehículo es la que está en curso —
+  // su factura de venta (si existe) fija el precio del contrato de
+  // compraventa, para que ambos documentos muestren siempre la misma cifra.
+  const operacionActualId = operations?.[0]?.id ?? null
+  const { data: facturaVentaActual } = operacionActualId
+    ? await supabase
+        .from('invoices')
+        .select('importe')
+        .eq('operation_id', operacionActualId)
+        .eq('tipo', 'venta')
+        .maybeSingle()
+    : { data: null }
+
   const { data: fotoSigned } = vehicle.foto_path
     ? await supabase.storage
         .from('vehicle-photos')
@@ -119,6 +133,15 @@ export default async function VehiculoDetallePage({
       return { ...doc, url: data?.signedUrl ?? null }
     })
   )
+
+  const facturaDocIds = documentsWithUrls
+    .filter((d: any) => TIPOS_FACTURA_PROTEGIDA.includes(d.tipo as DocumentTipo))
+    .map((d: any) => d.id)
+  const invoiceMapVehiculo = await getInvoicesByDocumentIds(supabase, facturaDocIds)
+  const facturaInfo: Record<string, { numeroFactura: string; importe: number }> = {}
+  for (const [docId, inv] of invoiceMapVehiculo) {
+    facturaInfo[docId] = { numeroFactura: formatNumeroFactura(inv), importe: inv.importe }
+  }
 
   const { data: expenses } = await supabase
     .from('expenses')
@@ -188,6 +211,7 @@ export default async function VehiculoDetallePage({
             vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
             clients={allClients ?? []}
             precioSugerido={vehicle.precio_venta_previsto}
+            facturaImporte={facturaVentaActual?.importe ?? null}
           />
           <GenerateFacturaVentaButton
             vehicleId={vehicle.id}
@@ -290,6 +314,7 @@ export default async function VehiculoDetallePage({
         vehiculoLabel={`${vehicle.marca} ${vehicle.modelo}`}
         estado={vehicle.estado}
         documentos={documentsWithUrls}
+        facturaInfo={facturaInfo}
         sendableDocs={sendableDocs}
         clienteEmail={clienteEmail}
       />

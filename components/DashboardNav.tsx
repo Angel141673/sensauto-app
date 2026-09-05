@@ -34,6 +34,12 @@ const ICONS: Record<string, React.ReactNode> = {
       <path d="M12 7.5v9M14.8 9.8c0-1.3-1.25-2.1-2.8-2.1s-2.7.75-2.7 1.9c0 3 5.5 1.4 5.5 4.3 0 1.2-1.2 1.9-2.8 1.9s-2.9-.8-2.9-2.1" />
     </>
   ),
+  facturas: (
+    <>
+      <path d="M6 3h9l3 3v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+      <path d="M15 3v3h3M8 9h8M8 12.5h8M8 16h5" />
+    </>
+  ),
   informes: (
     <>
       <path d="M4 20V4M4 20h16" />
@@ -49,6 +55,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/vehiculos', label: 'Vehículos', icon: 'vehiculos' },
   { href: '/dashboard/clientes', label: 'Clientes', icon: 'clientes' },
   { href: '/dashboard/documentos', label: 'Documentos', icon: 'documentos' },
+  { href: '/dashboard/facturas', label: 'Facturas', icon: 'facturas' },
   { href: '/dashboard/gastos', label: 'Gastos', icon: 'gastos' },
   { href: '/dashboard/informes', label: 'Informes', icon: 'informes' },
 ]
